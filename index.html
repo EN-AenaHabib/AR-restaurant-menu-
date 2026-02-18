@@ -2,11 +2,23 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>AR Test</title>
-</head>
-<body>
+  <title>AR Pizza Test</title>
 
-<h1>AR MENU TEST WORKING</h1>
+  <!-- Latest model-viewer script -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@1.12.1/dist/model-viewer.min.js"></script>
+</head>
+
+<body style="margin:0;">
+
+<model-viewer
+    src="pizza.glb"
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    camera-controls
+    auto-rotate
+    shadow-intensity="1"
+    style="width:100%; height:100vh;">
+</model-viewer>
 
 </body>
 </html>
