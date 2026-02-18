@@ -1,29 +1,23 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>AR Menu Test</title>
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://raw.gstreamer.net/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-  </head>
-  <body style="margin: 0px; overflow: hidden;">
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: true; detectionMode: mono_matrix; matrixCodeType: 3x3;">
-      
-      <a-assets>
-        <a-asset-item id="pizzaModel" src="pizza.glb"></a-asset-item>
-      </a-assets>
+<head>
+  <meta charset="UTF-8">
+  <title>AR Menu Test</title>
 
-      <a-marker preset="hiro">
-        <a-box position="0 0.5 0" material="color: red; opacity: 0.5;" scale="0.5 0.5 0.5"></a-box>
-        
-        <a-entity 
-          gltf-model="#pizzaModel" 
-          scale="1 1 1" 
-          position="0 0 0" 
-          rotation="0 0 0">
-        </a-entity>
-      </a-marker>
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+</head>
 
-      <a-entity camera></a-entity>
-    </a-scene>
-  </body>
+<body style="margin:0;">
+
+<model-viewer
+    src="pizza.glb"
+    ar
+    ar-modes="webxr scene-viewer quick-look"
+    camera-controls
+    auto-rotate
+    shadow-intensity="1"
+    style="width:100%; height:100vh;">
+</model-viewer>
+
+</body>
 </html>
