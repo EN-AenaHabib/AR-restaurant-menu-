@@ -1,177 +1,94 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="mobile-web-app-capable" content="yes"/>
-  <title>AR Pizza Menu</title>
+  <title>AR Menu</title>
 
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    html, body { width:100%; height:100%; overflow:hidden; background:#000; font-family: -apple-system, Arial, sans-serif; }
+    * { margin:0; padding:0; }
+    html, body { width:100%; height:100%; overflow:hidden; background:#000; }
 
-    /* Kill ALL AR.js default UI */
+    /* Kill every AR.js default UI element */
     .a-enter-ar, .a-enter-vr, .rs-base,
-    #ARjsDebugUIContainer, .a-orientation-modal { display:none !important; }
+    #ARjsDebugUIContainer, .a-orientation-modal,
+    .a-dialog, .a-loader-title { display:none !important; }
 
     /* ── SPLASH ── */
     #splash {
       position:fixed; inset:0; z-index:9999;
-      background:radial-gradient(ellipse at 50% 40%, #1e0900 0%, #050100 100%);
-      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
-      padding:30px;
+      background:#000;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center; gap:20px;
+      font-family: Arial, sans-serif;
     }
-    .s-icon  { font-size:72px; animation:bob 2.5s ease-in-out infinite; }
-    .s-title { font-size:26px; font-weight:900; color:#ff9b3c; letter-spacing:3px; text-transform:uppercase; }
-    .s-sub   { color:rgba(255,200,130,0.5); font-size:13px; text-align:center; max-width:260px; line-height:1.7; }
+    #splash h1   { color:#ff9b3c; font-size:24px; }
+    #splash p    { color:#aaa; font-size:13px; text-align:center; max-width:260px; line-height:1.6; }
+    .mframe      { width:140px; height:140px; background:#fff; border:3px solid #ff6b00; border-radius:10px; overflow:hidden; }
+    .mframe img  { width:100%; height:100%; }
+    #goBtn {
+      padding:14px 50px; background:#ff6b00; border:none; border-radius:40px;
+      color:#fff; font-size:16px; font-weight:700; cursor:pointer;
+    }
 
-    .marker-frame {
-      width:150px; height:150px; border:3px solid #ff6b00; border-radius:14px;
-      overflow:hidden; background:#fff; position:relative;
-    }
-    .marker-frame img { width:100%; height:100%; display:block; }
-    .marker-label {
-      position:absolute; bottom:0; left:0; right:0;
-      background:rgba(255,107,0,0.9); color:#fff;
-      font-size:9px; font-weight:800; text-align:center; padding:5px;
-      letter-spacing:1px; text-transform:uppercase;
-    }
-    .scan-line {
-      position:absolute; left:8%; width:84%; height:2px;
-      background:linear-gradient(90deg,transparent,#ff6b00,transparent);
-      animation:scan 2s linear infinite;
-    }
-    @keyframes scan { 0%{top:8%} 100%{top:86%} }
-
-    #startBtn {
-      padding:16px 56px; background:linear-gradient(135deg,#ff5500,#ffaa33);
-      border:none; border-radius:50px; color:#fff;
-      font-size:17px; font-weight:800; letter-spacing:1px;
-      cursor:pointer; text-transform:uppercase;
-      box-shadow:0 8px 32px rgba(255,85,0,0.5);
-      -webkit-appearance:none;
-    }
-    #startBtn:active { opacity:0.85; transform:scale(0.97); }
-
-    /* ── LOADING ── */
-    #loading {
-      display:none; position:fixed; inset:0; z-index:8888;
-      background:rgba(0,0,0,0.93);
-      flex-direction:column; align-items:center; justify-content:center; gap:16px;
-    }
-    #loading.show { display:flex; }
-    .spin {
-      width:50px; height:50px; border-radius:50%;
-      border:4px solid rgba(255,107,0,0.2); border-top-color:#ff6b00;
-      animation:spinner 0.8s linear infinite;
-    }
-    .load-txt { color:#ff9b3c; font-size:15px; font-weight:600; }
-    .load-sub { color:rgba(255,200,130,0.5); font-size:12px; }
-
-    /* ── AR SCENE ── */
+    /* ── AR scene fills screen ── */
     #arWrap { display:none; position:fixed; inset:0; z-index:1; }
     #arWrap a-scene,
-    #arWrap canvas { width:100%!important; height:100%!important; position:absolute!important; top:0!important; left:0!important; }
-
-    /* ── HUD ── */
-    #hud { display:none; position:fixed; inset:0; z-index:100; pointer-events:none; }
-
-    /* Scan hint */
-    #scanHint {
-      position:absolute; top:50%; left:50%;
-      transform:translate(-50%,-50%);
-      text-align:center; pointer-events:none; transition:opacity 0.3s;
-    }
-    #scanHint.hide { opacity:0; }
-    .finder {
-      width:160px; height:160px; margin:0 auto 12px;
-      border:2px dashed rgba(255,107,0,0.6); border-radius:16px;
-      display:flex; align-items:center; justify-content:center; font-size:50px;
-      animation:findPulse 1.7s ease-in-out infinite;
-    }
-    @keyframes findPulse { 0%,100%{border-color:rgba(255,107,0,0.3);transform:scale(1)} 50%{border-color:rgba(255,107,0,0.9);transform:scale(1.04)} }
-    #scanHint p { color:rgba(255,200,130,0.55); font-size:13px; }
-
-    /* Controls panel — bottom */
-    #controls {
-      position:absolute; bottom:0; left:0; right:0;
-      background:linear-gradient(0deg,rgba(0,0,0,0.88) 0%,transparent 100%);
-      padding:16px 18px 30px;
-      pointer-events:all;
-      display:flex; flex-direction:column; gap:12px;
+    #arWrap canvas {
+      width:100% !important; height:100% !important;
+      position:absolute !important; top:0 !important; left:0 !important;
     }
 
-    /* Size row */
-    .row { display:flex; align-items:center; gap:12px; }
-    .lbl { color:#ff9b3c; font-size:11px; font-weight:700; min-width:36px; }
-    #sizeSlider {
+    /* ── Controls (bottom strip) ── */
+    #ctrl {
+      display:none; position:fixed; bottom:0; left:0; right:0; z-index:100;
+      background:rgba(0,0,0,0.75);
+      padding:12px 14px 22px;
+      display:none; flex-direction:column; gap:10px;
+      font-family:Arial, sans-serif;
+    }
+    .row { display:flex; align-items:center; gap:10px; }
+    .lbl { color:#ff9b3c; font-size:11px; font-weight:700; min-width:34px; }
+    #szSlider {
       flex:1; -webkit-appearance:none; height:4px; border-radius:4px; outline:none;
-      background:linear-gradient(90deg,#ff6b00 50%,#2a2a2a 50%); cursor:pointer;
+      background:linear-gradient(90deg,#ff6b00 50%,#333 50%);
     }
-    #sizeSlider::-webkit-slider-thumb {
-      -webkit-appearance:none; width:24px; height:24px; border-radius:50%;
-      background:#ff9b3c; box-shadow:0 2px 10px rgba(255,107,0,0.6); cursor:pointer;
+    #szSlider::-webkit-slider-thumb {
+      -webkit-appearance:none; width:22px; height:22px; border-radius:50%;
+      background:#ff9b3c; cursor:pointer;
     }
-    .val { color:#ffcc99; font-size:11px; min-width:30px; text-align:right; }
-
-    /* Mode buttons row */
-    .btn-row { display:flex; gap:8px; }
-    .mbtn {
-      flex:1; padding:11px 4px; border-radius:12px;
-      background:rgba(0,0,0,0.65); border:1.5px solid rgba(255,107,0,0.3);
-      color:rgba(255,200,130,0.7); font-size:11px; font-weight:700;
-      text-align:center; cursor:pointer; user-select:none; -webkit-user-select:none;
-      transition:all 0.15s; letter-spacing:0.5px;
-      backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    .val { color:#fff; font-size:11px; min-width:30px; text-align:right; }
+    .btns { display:flex; gap:8px; }
+    .btn {
+      flex:1; padding:11px 2px; border-radius:10px; border:1.5px solid rgba(255,107,0,0.35);
+      background:rgba(255,255,255,0.06); color:rgba(255,200,130,0.8);
+      font-size:11px; font-weight:700; text-align:center; cursor:pointer;
+      user-select:none; -webkit-user-select:none;
     }
-    .mbtn:active  { transform:scale(0.94); }
-    .mbtn.on      { background:rgba(255,85,0,0.38); border-color:#ff6b00; color:#fff; }
-
-    /* Toast */
-    #toast {
-      position:fixed; top:24px; left:50%; transform:translateX(-50%); z-index:600;
-      background:rgba(0,0,0,0.85); border:1px solid rgba(255,107,0,0.3);
-      color:#ffcc99; font-size:13px; padding:9px 20px; border-radius:30px;
-      white-space:nowrap; pointer-events:none; opacity:0; transition:opacity 0.35s;
-    }
-    #toast.show { opacity:1; }
-
-    @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-    @keyframes spinner { to{transform:rotate(360deg)} }
+    .btn.on { background:rgba(255,85,0,0.4); border-color:#ff6b00; color:#fff; }
   </style>
 </head>
 <body>
 
-<!-- ══ SPLASH ══ -->
+<!-- SPLASH -->
 <div id="splash">
-  <div class="s-icon">🍕</div>
-  <div class="s-title">AR Pizza</div>
-
-  <div class="marker-frame">
-    <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" alt="HIRO marker"/>
-    <div class="scan-line"></div>
-    <div class="marker-label">Print &amp; place on table</div>
+  <h1>🍕 AR Menu</h1>
+  <div class="mframe">
+    <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" alt="hiro"/>
   </div>
-
-  <p class="s-sub">Print the HIRO marker above, lay it flat on your table, then tap Start.</p>
-  <button id="startBtn" onclick="startAR()">🎯 Start AR</button>
+  <p>Print this marker, place it on the table, then tap Start.</p>
+  <button id="goBtn" onclick="go()">Start AR</button>
 </div>
 
-<!-- ══ LOADING ══ -->
-<div id="loading">
-  <div class="spin"></div>
-  <div class="load-txt">Starting Camera…</div>
-  <div class="load-sub">Allow camera access when prompted</div>
-</div>
-
-<!-- ══ AR SCENE ══ -->
+<!-- AR SCENE -->
 <div id="arWrap">
   <a-scene
-    id="arScene"
+    id="sc"
     embedded
     arjs="sourceType:webcam; debugUIEnabled:false; detectionMode:mono_and_matrix; matrixCodeType:3x3; trackingMethod:best;"
     renderer="antialias:false; logarithmicDepthBuffer:true; precision:medium;"
@@ -179,243 +96,135 @@
     loading-screen="enabled:false"
     device-orientation-permission-ui="enabled:false">
 
-    <a-assets timeout="15000">
-      <a-asset-item id="pizzaGlb" src="pizza.glb" response-type="arraybuffer"></a-asset-item>
+    <a-assets timeout="20000">
+      <a-asset-item id="pm" src="pizza.glb"></a-asset-item>
     </a-assets>
 
-    <a-marker id="hiroMarker" preset="hiro" smooth="true" smooth-count="5">
-
-      <!-- The pizza model — flat (rotation 0 0 0), centred on marker -->
-      <a-entity id="pivotGroup">
-        <a-gltf-model
-          id="pizzaModel"
-          src="#pizzaGlb"
-          position="0 0.02 0"
-          rotation="0 0 0"
-          scale="0.15 0.15 0.15">
-        </a-gltf-model>
-      </a-entity>
-
+    <a-marker preset="hiro" id="mk" smooth="true" smooth-count="5">
+      <!-- ONLY the pizza model. rotation -90 0 0 lays it flat (most GLBs are upright by default) -->
+      <a-gltf-model
+        id="pizza"
+        src="#pm"
+        position="0 0 0"
+        rotation="-90 0 0"
+        scale="0.2 0.2 0.2">
+      </a-gltf-model>
     </a-marker>
 
     <a-entity camera></a-entity>
   </a-scene>
 </div>
 
-<!-- ══ HUD ══ -->
-<div id="hud">
-
-  <div id="scanHint">
-    <div class="finder">🔍</div>
-    <p>Point camera at the HIRO marker</p>
+<!-- CONTROLS -->
+<div id="ctrl">
+  <div class="row">
+    <span class="lbl">SIZE</span>
+    <input type="range" id="szSlider" min="1" max="100" value="40" oninput="resize(this.value)"/>
+    <span class="val" id="szVal">1.0×</span>
   </div>
-
-  <div id="controls">
-
-    <!-- Size slider -->
-    <div class="row">
-      <span class="lbl">SIZE</span>
-      <input type="range" id="sizeSlider" min="1" max="100" value="50" oninput="doSize(this.value)"/>
-      <span class="val" id="sizeVal">1.0×</span>
-    </div>
-
-    <!-- Mode buttons -->
-    <div class="btn-row">
-      <div class="mbtn on"  id="btnView"   onclick="setMode('view')">👁 VIEW</div>
-      <div class="mbtn"     id="btnMove"   onclick="setMode('move')">✋ MOVE</div>
-      <div class="mbtn"     id="btnRotate" onclick="setMode('rotate')">🔄 ROTATE</div>
-      <div class="mbtn"     id="btnReset"  onclick="doReset()">↺ RESET</div>
-    </div>
-
+  <div class="btns">
+    <div class="btn on"  id="bView"   onclick="mode('view')">👁 VIEW</div>
+    <div class="btn"     id="bMove"   onclick="mode('move')">✋ MOVE</div>
+    <div class="btn"     id="bRot"    onclick="mode('rotate')">🔄 ROTATE</div>
+    <div class="btn"     onclick="reset()">↺ RESET</div>
   </div>
 </div>
 
-<!-- TOAST -->
-<div id="toast"></div>
-
 <script>
-  var mode  = 'view';
-  var scale = 1.0;
+var m = 'view';          // current mode
+var baseScale = 0.2;     // matches the scale in HTML
+var lx=0, ly=0;
+var pd=0, ps=0.2;
 
-  var drag = false;
-  var lx = 0, ly = 0;
-  var pd0 = 0, ps0 = 1.0;
+function go() {
+  document.getElementById('splash').style.display = 'none';
+  document.getElementById('arWrap').style.display = 'block';
 
-  /* ── start ── */
-  function startAR() {
-    document.getElementById('splash').style.display = 'none';
-    document.getElementById('loading').classList.add('show');
-
-    setTimeout(function() {
-      document.getElementById('arWrap').style.display = 'block';
-      var scene = document.getElementById('arScene');
-
-      function ready() {
-        document.getElementById('loading').classList.remove('show');
-        document.getElementById('hud').style.display = 'block';
-        wireMarker();
-        wireTouch();
-      }
-
-      if (scene.hasLoaded) { ready(); }
-      else { scene.addEventListener('loaded', ready, { once:true }); }
-
-      // safety fallback
-      setTimeout(function() {
-        if (document.getElementById('hud').style.display === 'none') { ready(); }
-      }, 7000);
-
-    }, 150);
+  var sc = document.getElementById('sc');
+  function ready() {
+    document.getElementById('ctrl').style.display = 'flex';
+    wireTouch();
   }
+  if (sc.hasLoaded) ready();
+  else sc.addEventListener('loaded', ready, { once:true });
+  setTimeout(function(){ if(document.getElementById('ctrl').style.display==='none') ready(); }, 6000);
+}
 
-  /* ── marker found / lost ── */
-  function wireMarker() {
-    var marker = document.getElementById('hiroMarker');
-    var hint   = document.getElementById('scanHint');
+function wireTouch() {
+  var cvs = document.querySelector('#arWrap canvas');
+  if (!cvs) { setTimeout(wireTouch, 800); return; }
 
-    marker.addEventListener('markerFound', function() {
-      hint.classList.add('hide');
-      toast('🍕 Pizza detected!');
-    });
-    marker.addEventListener('markerLost', function() {
-      hint.classList.remove('hide');
-      toast('🔍 Point at the HIRO marker');
-    });
-  }
+  cvs.addEventListener('touchstart', function(e) {
+    if (e.touches.length===1) { lx=e.touches[0].clientX; ly=e.touches[0].clientY; }
+    if (e.touches.length===2) { pd=pinch(e); ps=baseScale; }
+  }, {passive:true});
 
-  /* ── touch: move / rotate / pinch-scale ── */
-  function wireTouch() {
-    // try to grab canvas; retry if not ready yet
-    var cvs = document.querySelector('#arWrap canvas');
-    if (!cvs) { setTimeout(wireTouch, 1000); return; }
+  cvs.addEventListener('touchmove', function(e) {
+    var pizza = document.getElementById('pizza');
+    if (!pizza) return;
 
-    cvs.addEventListener('touchstart', function(e) {
-      drag = false;
-      if (e.touches.length === 1) {
-        lx = e.touches[0].clientX;
-        ly = e.touches[0].clientY;
+    if (e.touches.length===1) {
+      var dx = e.touches[0].clientX - lx;
+      var dy = e.touches[0].clientY - ly;
+      if (m==='move') {
+        var p = pizza.getAttribute('position');
+        pizza.setAttribute('position', {x: p.x+dx*0.0015, y: p.y, z: p.z+dy*0.0015});
       }
-      if (e.touches.length === 2) {
-        pd0 = pinchDist(e);
-        ps0 = scale;
+      if (m==='rotate') {
+        var r = pizza.getAttribute('rotation');
+        pizza.setAttribute('rotation', {x: r.x, y: r.y+dx*0.6, z: r.z});
       }
-    }, { passive: true });
-
-    cvs.addEventListener('touchmove', function(e) {
-      var pivot = document.getElementById('pivotGroup');
-      if (!pivot) return;
-
-      /* single finger */
-      if (e.touches.length === 1) {
-        var dx = e.touches[0].clientX - lx;
-        var dy = e.touches[0].clientY - ly;
-        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) drag = true;
-
-        if (mode === 'move') {
-          var p = pivot.getAttribute('position');
-          pivot.setAttribute('position', {
-            x: p.x + dx * 0.0014,
-            y: p.y,
-            z: p.z + dy * 0.0014
-          });
-        }
-
-        if (mode === 'rotate') {
-          var r = pivot.getAttribute('rotation');
-          pivot.setAttribute('rotation', {
-            x: r.x,
-            y: r.y + dx * 0.6,
-            z: r.z
-          });
-        }
-
-        lx = e.touches[0].clientX;
-        ly = e.touches[0].clientY;
-      }
-
-      /* two fingers — pinch scale */
-      if (e.touches.length === 2) {
-        var d = pinchDist(e);
-        scale = Math.min(Math.max(ps0 * (d / pd0), 0.1), 6.0);
-        pivot.setAttribute('scale', scale + ' ' + scale + ' ' + scale);
-        syncSlider(scale);
-        drag = true;
-        e.preventDefault();
-      }
-    }, { passive: false });
-  }
-
-  function pinchDist(e) {
-    var dx = e.touches[0].clientX - e.touches[1].clientX;
-    var dy = e.touches[0].clientY - e.touches[1].clientY;
-    return Math.sqrt(dx*dx + dy*dy);
-  }
-
-  /* ── mode ── */
-  function setMode(m) {
-    mode = m;
-    ['view','move','rotate'].forEach(function(x) {
-      document.getElementById('btn' + x.charAt(0).toUpperCase() + x.slice(1))
-        .classList.toggle('on', x === m);
-    });
-    var msg = { view:'👁 View mode', move:'✋ Drag to move pizza', rotate:'🔄 Drag to rotate pizza' };
-    toast(msg[m]);
-  }
-
-  /* ── size slider ── */
-  function doSize(v) {
-    // v: 1–100 → scale: 0.05–0.5 (sensible range for a pizza on a marker)
-    scale = 0.05 + (v / 100) * 0.45;
-    var pivot = document.getElementById('pivotGroup');
-    if (pivot) pivot.setAttribute('scale', scale + ' ' + scale + ' ' + scale);
-
-    // also update the model's own scale to keep it reasonable
-    var model = document.getElementById('pizzaModel');
-    if (model) {
-      var s = 0.08 + (v / 100) * 0.22;
-      model.setAttribute('scale', s + ' ' + s + ' ' + s);
+      lx=e.touches[0].clientX; ly=e.touches[0].clientY;
     }
 
-    document.getElementById('sizeVal').textContent = (v / 50).toFixed(1) + '×';
-    var pct = v + '%';
-    document.getElementById('sizeSlider').style.background =
-      'linear-gradient(90deg,#ff6b00 ' + pct + ',#2a2a2a ' + pct + ')';
-  }
-
-  function syncSlider(s) {
-    var v = Math.round(((s - 0.1) / 3.9) * 100);
-    document.getElementById('sizeSlider').value = Math.min(100, Math.max(1, v));
-    document.getElementById('sizeVal').textContent = s.toFixed(1) + '×';
-  }
-
-  /* ── reset ── */
-  function doReset() {
-    var pivot = document.getElementById('pivotGroup');
-    var model = document.getElementById('pizzaModel');
-    if (pivot) {
-      pivot.setAttribute('position', '0 0 0');
-      pivot.setAttribute('rotation', '0 0 0');
-      pivot.setAttribute('scale',    '1 1 1');
+    if (e.touches.length===2) {
+      var d = pinch(e);
+      baseScale = Math.min(Math.max(ps*(d/pd), 0.02), 1.5);
+      pizza.setAttribute('scale', baseScale+' '+baseScale+' '+baseScale);
+      syncSlider(baseScale);
+      e.preventDefault();
     }
-    if (model) {
-      model.setAttribute('scale',    '0.15 0.15 0.15');
-      model.setAttribute('position', '0 0.02 0');
-      model.setAttribute('rotation', '0 0 0');
-    }
-    scale = 1.0;
-    document.getElementById('sizeSlider').value = 50;
-    document.getElementById('sizeVal').textContent = '1.0×';
-    toast('↺ Reset');
-  }
+  }, {passive:false});
+}
 
-  /* ── toast ── */
-  var _t;
-  function toast(msg) {
-    var el = document.getElementById('toast');
-    el.textContent = msg; el.classList.add('show');
-    clearTimeout(_t);
-    _t = setTimeout(function() { el.classList.remove('show'); }, 2800);
-  }
+function pinch(e) {
+  var dx=e.touches[0].clientX-e.touches[1].clientX;
+  var dy=e.touches[0].clientY-e.touches[1].clientY;
+  return Math.sqrt(dx*dx+dy*dy);
+}
+
+function mode(v) {
+  m = v;
+  ['View','Move','Rot'].forEach(function(x){ document.getElementById('b'+x).classList.remove('on'); });
+  var map = {view:'View', move:'Move', rotate:'Rot'};
+  document.getElementById('b'+map[v]).classList.add('on');
+}
+
+function resize(v) {
+  baseScale = 0.02 + (v/100)*0.58;
+  var pizza = document.getElementById('pizza');
+  if (pizza) pizza.setAttribute('scale', baseScale+' '+baseScale+' '+baseScale);
+  document.getElementById('szVal').textContent = (baseScale/0.2).toFixed(1)+'×';
+  document.getElementById('szSlider').style.background =
+    'linear-gradient(90deg,#ff6b00 '+v+'%,#333 '+v+'%)';
+}
+
+function syncSlider(s) {
+  var v = Math.round(((s-0.02)/0.58)*100);
+  document.getElementById('szSlider').value = Math.min(100,Math.max(1,v));
+  document.getElementById('szVal').textContent = (s/0.2).toFixed(1)+'×';
+}
+
+function reset() {
+  var pizza = document.getElementById('pizza');
+  if (!pizza) return;
+  pizza.setAttribute('position','0 0 0');
+  pizza.setAttribute('rotation','-90 0 0');
+  baseScale = 0.2;
+  pizza.setAttribute('scale','0.2 0.2 0.2');
+  document.getElementById('szSlider').value = 40;
+  document.getElementById('szVal').textContent = '1.0×';
+}
 </script>
 </body>
 </html>
