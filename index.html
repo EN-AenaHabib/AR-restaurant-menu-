@@ -3,755 +3,419 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-  <title>AR Menu</title>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <title>AR Pizza Menu</title>
 
-  <!-- Load A-Frame FIRST, then AR.js -->
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
   <style>
-    html, body {
-      margin: 0; padding: 0;
-      width: 100%; height: 100%;
-      overflow: hidden;
-      background: #000;
-      font-family: -apple-system, 'Segoe UI', Arial, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { width:100%; height:100%; overflow:hidden; background:#000; font-family: -apple-system, Arial, sans-serif; }
 
-    /* ─── SPLASH ─── */
+    /* Kill ALL AR.js default UI */
+    .a-enter-ar, .a-enter-vr, .rs-base,
+    #ARjsDebugUIContainer, .a-orientation-modal { display:none !important; }
+
+    /* ── SPLASH ── */
     #splash {
-      position: fixed; inset: 0; z-index: 9999;
-      background: radial-gradient(ellipse at 50% 40%, #2d1000 0%, #080200 100%);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 14px; padding: 28px 24px;
+      position:fixed; inset:0; z-index:9999;
+      background:radial-gradient(ellipse at 50% 40%, #1e0900 0%, #050100 100%);
+      display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+      padding:30px;
     }
-    .s-emoji  { font-size: 68px; animation: float 2.5s ease-in-out infinite; }
-    .s-title  { font-size: 28px; font-weight: 900; color: #ff9b3c; letter-spacing: 3px; text-transform: uppercase; }
-    .s-badge  {
-      font-size: 10px; font-weight: 700; letter-spacing: 1px;
-      color: #ff9b3c; border: 1px solid rgba(255,107,0,0.4);
-      background: rgba(255,107,0,0.1); padding: 5px 14px; border-radius: 20px;
-    }
+    .s-icon  { font-size:72px; animation:bob 2.5s ease-in-out infinite; }
+    .s-title { font-size:26px; font-weight:900; color:#ff9b3c; letter-spacing:3px; text-transform:uppercase; }
+    .s-sub   { color:rgba(255,200,130,0.5); font-size:13px; text-align:center; max-width:260px; line-height:1.7; }
 
-    /* Marker preview */
-    .marker-wrap {
-      position: relative; width: 148px; height: 148px;
-      border: 2.5px solid #ff6b00; border-radius: 14px; overflow: hidden;
-      background: #fff; margin: 4px 0;
+    .marker-frame {
+      width:150px; height:150px; border:3px solid #ff6b00; border-radius:14px;
+      overflow:hidden; background:#fff; position:relative;
     }
-    .marker-wrap img { width: 100%; height: 100%; display: block; object-fit: contain; }
-    .marker-overlay {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      background: rgba(255,107,0,0.88); color: #fff;
-      font-size: 9px; font-weight: 800; text-align: center;
-      padding: 5px; letter-spacing: 1px; text-transform: uppercase;
+    .marker-frame img { width:100%; height:100%; display:block; }
+    .marker-label {
+      position:absolute; bottom:0; left:0; right:0;
+      background:rgba(255,107,0,0.9); color:#fff;
+      font-size:9px; font-weight:800; text-align:center; padding:5px;
+      letter-spacing:1px; text-transform:uppercase;
     }
-    .scan-bar {
-      position: absolute; left: 8%; width: 84%; height: 2px;
-      background: linear-gradient(90deg, transparent, #ff6b00, transparent);
-      animation: scanbar 2s linear infinite; pointer-events: none;
+    .scan-line {
+      position:absolute; left:8%; width:84%; height:2px;
+      background:linear-gradient(90deg,transparent,#ff6b00,transparent);
+      animation:scan 2s linear infinite;
     }
-    @keyframes scanbar { 0%{top:8%} 100%{top:85%} }
+    @keyframes scan { 0%{top:8%} 100%{top:86%} }
 
-    .s-hint { color: rgba(255,204,153,0.55); font-size: 12px; text-align: center; max-width: 240px; line-height: 1.6; }
-
-    /* Start button */
     #startBtn {
-      margin-top: 6px; padding: 17px 56px;
-      background: linear-gradient(135deg, #ff5500, #ffaa33);
-      border: none; border-radius: 50px; color: #fff;
-      font-size: 17px; font-weight: 800; letter-spacing: 1px;
-      cursor: pointer; text-transform: uppercase;
-      box-shadow: 0 8px 32px rgba(255,85,0,0.5);
-      -webkit-appearance: none; appearance: none;
+      padding:16px 56px; background:linear-gradient(135deg,#ff5500,#ffaa33);
+      border:none; border-radius:50px; color:#fff;
+      font-size:17px; font-weight:800; letter-spacing:1px;
+      cursor:pointer; text-transform:uppercase;
+      box-shadow:0 8px 32px rgba(255,85,0,0.5);
+      -webkit-appearance:none;
     }
-    #startBtn:active { opacity: 0.85; transform: scale(0.97); }
+    #startBtn:active { opacity:0.85; transform:scale(0.97); }
 
-    /* ─── LOADING overlay ─── */
-    #loadingOverlay {
-      display: none;
-      position: fixed; inset: 0; z-index: 8888;
-      background: rgba(0,0,0,0.92);
-      flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    /* ── LOADING ── */
+    #loading {
+      display:none; position:fixed; inset:0; z-index:8888;
+      background:rgba(0,0,0,0.93);
+      flex-direction:column; align-items:center; justify-content:center; gap:16px;
     }
-    #loadingOverlay.show { display: flex; }
-    .spinner {
-      width: 52px; height: 52px; border-radius: 50%;
-      border: 4px solid rgba(255,107,0,0.2);
-      border-top-color: #ff6b00;
-      animation: spin 0.8s linear infinite;
+    #loading.show { display:flex; }
+    .spin {
+      width:50px; height:50px; border-radius:50%;
+      border:4px solid rgba(255,107,0,0.2); border-top-color:#ff6b00;
+      animation:spinner 0.8s linear infinite;
     }
-    .loading-text { color: #ff9b3c; font-size: 15px; font-weight: 600; }
-    .loading-sub  { color: rgba(255,204,153,0.5); font-size: 12px; text-align: center; max-width: 240px; }
+    .load-txt { color:#ff9b3c; font-size:15px; font-weight:600; }
+    .load-sub { color:rgba(255,200,130,0.5); font-size:12px; }
 
-    /* ─── AR SCENE wrapper ─── */
-    #arWrap {
-      display: none;
-      position: fixed; inset: 0; z-index: 1;
-    }
-    /* Force A-Frame canvas to fill screen */
-    #arWrap canvas,
-    #arWrap a-scene {
-      width: 100% !important;
-      height: 100% !important;
-      position: absolute !important;
-      top: 0 !important; left: 0 !important;
-    }
-    /* Kill the annoying AR.js default UI */
-    .a-enter-ar, .a-enter-vr,
-    .rs-base, #ARjsDebugUIContainer { display: none !important; }
+    /* ── AR SCENE ── */
+    #arWrap { display:none; position:fixed; inset:0; z-index:1; }
+    #arWrap a-scene,
+    #arWrap canvas { width:100%!important; height:100%!important; position:absolute!important; top:0!important; left:0!important; }
 
-    /* ─── HUD ─── */
-    #hud {
-      display: none;
-      position: fixed; inset: 0; z-index: 100;
-      pointer-events: none;
-    }
+    /* ── HUD ── */
+    #hud { display:none; position:fixed; inset:0; z-index:100; pointer-events:none; }
 
-    /* Top */
-    #topBar {
-      position: absolute; top: 0; left: 0; right: 0;
-      background: linear-gradient(180deg, rgba(0,0,0,0.78) 0%, transparent 100%);
-      padding: 14px 16px 32px;
-      display: flex; align-items: center; justify-content: space-between;
-      pointer-events: all;
+    /* Scan hint */
+    #scanHint {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      text-align:center; pointer-events:none; transition:opacity 0.3s;
     }
-    .brand     { color: #ff9b3c; font-size: 16px; font-weight: 800; letter-spacing: 1px; }
-    .liveBadge {
-      color: #ff9b3c; font-size: 10px; font-weight: 700; letter-spacing: 1px;
-      border: 1px solid rgba(255,107,0,0.5);
-      background: rgba(255,107,0,0.15); padding: 4px 10px; border-radius: 20px;
-      animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
-
-    /* Tracking lost */
-    #trackLost {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      text-align: center; pointer-events: none;
-      transition: opacity 0.35s;
-    }
-    #trackLost.hide { opacity: 0; }
+    #scanHint.hide { opacity:0; }
     .finder {
-      width: 160px; height: 160px; margin: 0 auto 12px;
-      border: 2px dashed rgba(255,107,0,0.55); border-radius: 16px;
-      display: flex; align-items: center; justify-content: center; font-size: 48px;
-      animation: findPulse 1.7s ease-in-out infinite;
+      width:160px; height:160px; margin:0 auto 12px;
+      border:2px dashed rgba(255,107,0,0.6); border-radius:16px;
+      display:flex; align-items:center; justify-content:center; font-size:50px;
+      animation:findPulse 1.7s ease-in-out infinite;
     }
-    @keyframes findPulse {
-      0%,100%{border-color:rgba(255,107,0,0.3); transform:scale(1)}
-      50%   {border-color:rgba(255,107,0,0.9); transform:scale(1.04)}
-    }
-    #trackLost p { color: rgba(255,204,153,0.6); font-size: 13px; }
+    @keyframes findPulse { 0%,100%{border-color:rgba(255,107,0,0.3);transform:scale(1)} 50%{border-color:rgba(255,107,0,0.9);transform:scale(1.04)} }
+    #scanHint p { color:rgba(255,200,130,0.55); font-size:13px; }
 
-    /* Right controls */
-    #rightCtrl {
-      position: absolute; right: 11px; top: 50%;
-      transform: translateY(-50%);
-      display: flex; flex-direction: column; gap: 7px;
-      pointer-events: all;
-    }
-    .cgroup { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-    .cbtn {
-      width: 50px; height: 50px; border-radius: 13px;
-      background: rgba(0,0,0,0.70); border: 1.5px solid rgba(255,107,0,0.3);
-      color: #fff; font-size: 20px;
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer; user-select: none; -webkit-user-select: none;
-      transition: background 0.15s, border-color 0.15s, transform 0.1s;
-      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    }
-    .cbtn:active    { transform: scale(0.88); background: rgba(255,107,0,0.45); }
-    .cbtn.on        { background: rgba(255,107,0,0.4); border-color: #ff6b00; }
-    .clbl { color: rgba(255,155,60,0.6); font-size: 8.5px; letter-spacing: 0.5px; font-weight: 600; }
-
-    /* Bottom */
-    #bottomBar {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      background: linear-gradient(0deg, rgba(0,0,0,0.86) 0%, transparent 100%);
-      padding: 16px 15px 28px;
-      pointer-events: all;
-      display: flex; flex-direction: column; gap: 11px;
+    /* Controls panel — bottom */
+    #controls {
+      position:absolute; bottom:0; left:0; right:0;
+      background:linear-gradient(0deg,rgba(0,0,0,0.88) 0%,transparent 100%);
+      padding:16px 18px 30px;
+      pointer-events:all;
+      display:flex; flex-direction:column; gap:12px;
     }
 
-    /* Slider */
-    .sliderRow   { display: flex; align-items: center; gap: 10px; }
-    .sliderLabel { color: #ff9b3c; font-size: 11px; font-weight: 700; min-width: 32px; }
+    /* Size row */
+    .row { display:flex; align-items:center; gap:12px; }
+    .lbl { color:#ff9b3c; font-size:11px; font-weight:700; min-width:36px; }
     #sizeSlider {
-      flex: 1; -webkit-appearance: none; appearance: none;
-      height: 4px; border-radius: 4px; outline: none;
-      background: linear-gradient(90deg, #ff6b00 50%, #2a2a2a 50%);
-      cursor: pointer;
+      flex:1; -webkit-appearance:none; height:4px; border-radius:4px; outline:none;
+      background:linear-gradient(90deg,#ff6b00 50%,#2a2a2a 50%); cursor:pointer;
     }
     #sizeSlider::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 24px; height: 24px;
-      border-radius: 50%; background: #ff9b3c;
-      box-shadow: 0 2px 10px rgba(255,107,0,0.65); cursor: pointer;
+      -webkit-appearance:none; width:24px; height:24px; border-radius:50%;
+      background:#ff9b3c; box-shadow:0 2px 10px rgba(255,107,0,0.6); cursor:pointer;
     }
-    .sliderVal { color: #ffcc99; font-size: 11px; min-width: 30px; text-align: right; }
+    .val { color:#ffcc99; font-size:11px; min-width:30px; text-align:right; }
 
-    /* Pills */
-    #pills { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; }
-    #pills::-webkit-scrollbar { display: none; }
-    .pill {
-      white-space: nowrap; padding: 9px 17px; border-radius: 30px;
-      font-size: 12px; font-weight: 700; cursor: pointer; user-select: none;
-      border: 1.5px solid rgba(255,107,0,0.28); color: rgba(255,155,60,0.7);
-      background: rgba(0,0,0,0.4); transition: all 0.18s;
+    /* Mode buttons row */
+    .btn-row { display:flex; gap:8px; }
+    .mbtn {
+      flex:1; padding:11px 4px; border-radius:12px;
+      background:rgba(0,0,0,0.65); border:1.5px solid rgba(255,107,0,0.3);
+      color:rgba(255,200,130,0.7); font-size:11px; font-weight:700;
+      text-align:center; cursor:pointer; user-select:none; -webkit-user-select:none;
+      transition:all 0.15s; letter-spacing:0.5px;
+      backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
     }
-    .pill.on {
-      background: linear-gradient(135deg, #ff5500, #ffaa33);
-      color: #fff; border-color: transparent;
-      box-shadow: 0 4px 18px rgba(255,85,0,0.38);
-    }
+    .mbtn:active  { transform:scale(0.94); }
+    .mbtn.on      { background:rgba(255,85,0,0.38); border-color:#ff6b00; color:#fff; }
 
-    /* ─── INFO CARD ─── */
-    #infoCard {
-      position: fixed; bottom: 118px; left: 50%;
-      transform: translateX(-50%) translateY(130%);
-      z-index: 500; width: calc(100% - 32px); max-width: 400px;
-      background: rgba(6,2,0,0.97);
-      border: 1.5px solid rgba(255,107,0,0.32); border-radius: 24px;
-      padding: 20px 20px 16px;
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 20px 60px rgba(255,85,0,0.16);
-      transition: transform 0.36s cubic-bezier(0.175,0.885,0.32,1.275);
-    }
-    #infoCard.show { transform: translateX(-50%) translateY(0); }
-    .cardTop  { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-    #cName    { color: #ff9b3c; font-size: 19px; font-weight: 800; }
-    #cPrice   {
-      background: linear-gradient(135deg,#ff5500,#ffaa33);
-      color: #fff; padding: 5px 13px; border-radius: 20px;
-      font-size: 13px; font-weight: 800; white-space: nowrap; flex-shrink: 0;
-    }
-    #cDesc    { color: rgba(255,204,153,0.65); font-size: 13px; line-height: 1.65; margin-bottom: 10px; }
-    #cTags    { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-    .ctag     {
-      background: rgba(255,107,0,0.1); border: 1px solid rgba(255,107,0,0.22);
-      color: rgba(255,155,60,0.8); font-size: 11px; padding: 3px 10px; border-radius: 20px;
-    }
-    #closeBtn {
-      width: 100%; padding: 12px;
-      background: rgba(255,107,0,0.13); border: 1px solid rgba(255,107,0,0.28);
-      border-radius: 13px; color: #ff9b3c;
-      font-size: 14px; font-weight: 700; cursor: pointer; text-align: center;
-      -webkit-appearance: none; appearance: none;
-    }
-    #closeBtn:active { background: rgba(255,107,0,0.32); }
-
-    /* ─── TOAST ─── */
+    /* Toast */
     #toast {
-      position: fixed; top: 72px; left: 50%;
-      transform: translateX(-50%); z-index: 600;
-      background: rgba(0,0,0,0.84); border: 1px solid rgba(255,107,0,0.28);
-      color: #ffcc99; font-size: 13px; padding: 9px 20px; border-radius: 30px;
-      white-space: nowrap; pointer-events: none;
-      opacity: 0; transition: opacity 0.4s;
-      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      position:fixed; top:24px; left:50%; transform:translateX(-50%); z-index:600;
+      background:rgba(0,0,0,0.85); border:1px solid rgba(255,107,0,0.3);
+      color:#ffcc99; font-size:13px; padding:9px 20px; border-radius:30px;
+      white-space:nowrap; pointer-events:none; opacity:0; transition:opacity 0.35s;
     }
-    #toast.show { opacity: 1; }
+    #toast.show { opacity:1; }
 
-    /* ─── Misc ─── */
-    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-    @keyframes spin   { to{transform:rotate(360deg)} }
+    @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    @keyframes spinner { to{transform:rotate(360deg)} }
   </style>
 </head>
 <body>
 
-<!-- ══════════════════ SPLASH ══════════════════ -->
+<!-- ══ SPLASH ══ -->
 <div id="splash">
-  <div class="s-emoji">🍕</div>
-  <div class="s-title">AR Menu</div>
-  <div class="s-badge">NO APP · NO ARCORE · ANY PHONE</div>
+  <div class="s-icon">🍕</div>
+  <div class="s-title">AR Pizza</div>
 
-  <div class="marker-wrap">
-    <img id="hiroImg"
-      src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
-      alt="HIRO marker"
-      crossorigin="anonymous"/>
-    <div class="scan-bar"></div>
-    <div class="marker-overlay">Print &amp; place on table</div>
+  <div class="marker-frame">
+    <img src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" alt="HIRO marker"/>
+    <div class="scan-line"></div>
+    <div class="marker-label">Print &amp; place on table</div>
   </div>
 
-  <p class="s-hint">
-    Print the marker above, place it on your table, then tap Start AR and point your camera at it.
-  </p>
-
-  <button id="startBtn" onclick="beginAR()">🎯 Start AR</button>
+  <p class="s-sub">Print the HIRO marker above, lay it flat on your table, then tap Start.</p>
+  <button id="startBtn" onclick="startAR()">🎯 Start AR</button>
 </div>
 
-<!-- ══════════════════ LOADING ══════════════════ -->
-<div id="loadingOverlay">
-  <div class="spinner"></div>
-  <div class="loading-text">Starting Camera…</div>
-  <div class="loading-sub">Please allow camera access when prompted</div>
+<!-- ══ LOADING ══ -->
+<div id="loading">
+  <div class="spin"></div>
+  <div class="load-txt">Starting Camera…</div>
+  <div class="load-sub">Allow camera access when prompted</div>
 </div>
 
-<!-- ══════════════════ AR SCENE ══════════════════ -->
+<!-- ══ AR SCENE ══ -->
 <div id="arWrap">
-  <!--
-    KEY SETTINGS FOR MOBILE:
-    - sourceType: webcam  (uses getUserMedia, works on all phones)
-    - debugUIEnabled: false  (removes white AR.js overlay)
-    - detectionMode: mono_and_matrix  (faster on mobile)
-    - trackingMethod: best  (auto picks best for device)
-  -->
   <a-scene
-    id="theScene"
+    id="arScene"
     embedded
-    arjs="sourceType: webcam;
-          debugUIEnabled: false;
-          detectionMode: mono_and_matrix;
-          matrixCodeType: 3x3;
-          trackingMethod: best;"
-    renderer="antialias: false;
-              logarithmicDepthBuffer: true;
-              precision: medium;"
-    vr-mode-ui="enabled: false"
-    loading-screen="enabled: false"
-    device-orientation-permission-ui="enabled: false">
+    arjs="sourceType:webcam; debugUIEnabled:false; detectionMode:mono_and_matrix; matrixCodeType:3x3; trackingMethod:best;"
+    renderer="antialias:false; logarithmicDepthBuffer:true; precision:medium;"
+    vr-mode-ui="enabled:false"
+    loading-screen="enabled:false"
+    device-orientation-permission-ui="enabled:false">
 
-    <a-assets timeout="10000">
-      <a-asset-item id="pizzaAsset" src="pizza.glb" response-type="arraybuffer"></a-asset-item>
+    <a-assets timeout="15000">
+      <a-asset-item id="pizzaGlb" src="pizza.glb" response-type="arraybuffer"></a-asset-item>
     </a-assets>
 
-    <!-- HIRO marker — the classic black/white square marker, no .mind file needed -->
-    <a-marker id="hiroMarker" preset="hiro" smooth="true" smooth-count="5" smooth-tolerance="0.01" smooth-threshold="2">
+    <a-marker id="hiroMarker" preset="hiro" smooth="true" smooth-count="5">
 
-      <a-entity id="menuGroup">
+      <!-- The pizza model — flat (rotation 0 0 0), centred on marker -->
+      <a-entity id="pivotGroup">
+        <a-gltf-model
+          id="pizzaModel"
+          src="#pizzaGlb"
+          position="0 0.02 0"
+          rotation="0 0 0"
+          scale="0.15 0.15 0.15">
+        </a-gltf-model>
+      </a-entity>
 
-        <!-- Base disc so something is always visible -->
-        <a-cylinder
-          position="0 0.01 0" radius="0.58" height="0.01"
-          color="#1c0800" opacity="0.55">
-        </a-cylinder>
-
-        <!-- ══ PIZZA 1 — Margherita ══ -->
-        <a-entity id="dish0"
-          class="dish"
-          data-name="Margherita Pizza"
-          data-price="$12.99"
-          data-desc="Fresh tomato sauce, buffalo mozzarella and basil on a wood-fired crust."
-          data-tags="Vegetarian,Classic,Best Seller"
-          data-emoji="🍕"
-          position="-0.33 0 -0.08">
-
-          <!-- 3D model (shown if pizza.glb loads) -->
-          <a-gltf-model
-            id="m0"
-            src="#pizzaAsset"
-            position="0 0.09 0"
-            scale="0.075 0.075 0.075"
-            rotation="-90 0 0"
-            animation__spin="property:rotation; from:-90 0 0; to:-90 360 0; dur:5000; loop:true; easing:linear"
-            animation__bob="property:position; from:0 0.07 0; to:0 0.15 0; dur:1900; dir:alternate; loop:true; easing:easeInOutSine">
-          </a-gltf-model>
-
-          <!-- Fallback disc (shown if model fails) -->
-          <a-cylinder
-            id="fb0"
-            visible="false"
-            radius="0.1" height="0.02" color="#e84a1a"
-            position="0 0.09 0"
-            animation__spin="property:rotation; to:0 360 0; dur:5000; loop:true; easing:linear"
-            animation__bob="property:position; from:0 0.07 0; to:0 0.15 0; dur:1900; dir:alternate; loop:true; easing:easeInOutSine">
-          </a-cylinder>
-
-          <a-text value="Margherita" align="center" position="0 0.27 0" color="#ffaa44" width="1.1" font="roboto"></a-text>
-          <a-text value="$12.99"     align="center" position="0 0.19 0" color="#ffffff"  width="0.85" font="roboto"></a-text>
-
-          <!-- Invisible tap target (large so easy to tap on phone) -->
-          <a-box position="0 0.12 0" width="0.35" height="0.35" depth="0.35"
-            material="opacity:0; transparent:true"
-            class="tappable">
-          </a-box>
-        </a-entity>
-
-        <!-- ══ PIZZA 2 — Pepperoni ══ -->
-        <a-entity id="dish1"
-          class="dish"
-          data-name="Pepperoni Supreme"
-          data-price="$14.99"
-          data-desc="Premium pepperoni, extra mozzarella, slow-cooked tomato sauce."
-          data-tags="Spicy,Popular,Chef Pick"
-          data-emoji="🍕"
-          position="0.33 0 -0.08">
-
-          <a-gltf-model
-            id="m1"
-            src="#pizzaAsset"
-            position="0 0.09 0"
-            scale="0.075 0.075 0.075"
-            rotation="-90 0 0"
-            animation__spin="property:rotation; from:-90 0 0; to:-90 360 0; dur:4600; loop:true; easing:linear"
-            animation__bob="property:position; from:0 0.09 0; to:0 0.17 0; dur:2100; dir:alternate; loop:true; easing:easeInOutSine">
-          </a-gltf-model>
-
-          <a-cylinder
-            id="fb1"
-            visible="false"
-            radius="0.1" height="0.02" color="#c0321a"
-            position="0 0.09 0"
-            animation__spin="property:rotation; to:0 360 0; dur:4600; loop:true; easing:linear"
-            animation__bob="property:position; from:0 0.09 0; to:0 0.17 0; dur:2100; dir:alternate; loop:true; easing:easeInOutSine">
-          </a-cylinder>
-
-          <a-text value="Pepperoni" align="center" position="0 0.27 0" color="#ffaa44" width="1.1" font="roboto"></a-text>
-          <a-text value="$14.99"    align="center" position="0 0.19 0" color="#ffffff"  width="0.85" font="roboto"></a-text>
-
-          <a-box position="0 0.12 0" width="0.35" height="0.35" depth="0.35"
-            material="opacity:0; transparent:true" class="tappable">
-          </a-box>
-        </a-entity>
-
-        <!-- ══ PASTA ══ -->
-        <a-entity id="dish2"
-          class="dish"
-          data-name="Pasta Alfredo"
-          data-price="$10.99"
-          data-desc="Silky cream sauce, aged parmesan, and fresh herbs with al-dente pasta."
-          data-tags="Vegetarian,Creamy,Comfort"
-          data-emoji="🍝"
-          position="0 0 0.36">
-
-          <a-sphere
-            radius="0.09" color="#f0c030" roughness="0.6"
-            position="0 0.09 0"
-            animation__spin="property:rotation; to:0 360 0; dur:6000; loop:true; easing:linear"
-            animation__bob="property:position; from:0 0.07 0; to:0 0.15 0; dur:1700; dir:alternate; loop:true; easing:easeInOutSine">
-          </a-sphere>
-
-          <a-text value="🍝 Pasta"  align="center" position="0 0.27 0" color="#ffaa44" width="1.1" font="roboto"></a-text>
-          <a-text value="$10.99"    align="center" position="0 0.19 0" color="#ffffff"  width="0.85" font="roboto"></a-text>
-
-          <a-box position="0 0.12 0" width="0.35" height="0.35" depth="0.35"
-            material="opacity:0; transparent:true" class="tappable">
-          </a-box>
-        </a-entity>
-
-        <!-- ══ BURGER ══ -->
-        <a-entity id="dish3"
-          class="dish"
-          data-name="Classic Cheeseburger"
-          data-price="$9.99"
-          data-desc="Juicy beef patty, aged cheddar, fresh lettuce, tomato, our secret sauce."
-          data-tags="Juicy,Popular,Comfort"
-          data-emoji="🍔"
-          position="0 0 -0.4">
-
-          <a-box
-            width="0.13" height="0.09" depth="0.13" color="#c84a18" roughness="0.65"
-            position="0 0.09 0"
-            animation__spin="property:rotation; to:0 360 0; dur:5500; loop:true; easing:linear"
-            animation__bob="property:position; from:0 0.08 0; to:0 0.16 0; dur:2300; dir:alternate; loop:true; easing:easeInOutSine">
-          </a-box>
-
-          <a-text value="🍔 Burger" align="center" position="0 0.27 0" color="#ffaa44" width="1.1" font="roboto"></a-text>
-          <a-text value="$9.99"     align="center" position="0 0.19 0" color="#ffffff"  width="0.85" font="roboto"></a-text>
-
-          <a-box position="0 0.12 0" width="0.35" height="0.35" depth="0.35"
-            material="opacity:0; transparent:true" class="tappable">
-          </a-box>
-        </a-entity>
-
-      </a-entity><!-- /menuGroup -->
     </a-marker>
 
     <a-entity camera></a-entity>
   </a-scene>
 </div>
 
-<!-- ══════════════════ HUD ══════════════════ -->
+<!-- ══ HUD ══ -->
 <div id="hud">
 
-  <div id="topBar">
-    <span class="brand">🍽️ Bella Vista</span>
-    <span class="liveBadge">● AR LIVE</span>
-  </div>
-
-  <div id="trackLost">
+  <div id="scanHint">
     <div class="finder">🔍</div>
     <p>Point camera at the HIRO marker</p>
   </div>
 
-  <div id="rightCtrl">
-    <div class="cgroup">
-      <div class="cbtn on" id="btnView"   onclick="setMode('view')">👁️</div>
-      <div class="clbl">VIEW</div>
-    </div>
-    <div class="cgroup">
-      <div class="cbtn" id="btnMove"   onclick="setMode('move')">✋</div>
-      <div class="clbl">MOVE</div>
-    </div>
-    <div class="cgroup">
-      <div class="cbtn" id="btnRotate" onclick="setMode('rotate')">🔄</div>
-      <div class="clbl">ROTATE</div>
-    </div>
-    <div class="cgroup">
-      <div class="cbtn" onclick="resetMenu()">↺</div>
-      <div class="clbl">RESET</div>
-    </div>
-  </div>
+  <div id="controls">
 
-  <div id="bottomBar">
-    <div class="sliderRow">
-      <span class="sliderLabel">SIZE</span>
+    <!-- Size slider -->
+    <div class="row">
+      <span class="lbl">SIZE</span>
       <input type="range" id="sizeSlider" min="1" max="100" value="50" oninput="doSize(this.value)"/>
-      <span class="sliderVal" id="sizeVal">1.0×</span>
+      <span class="val" id="sizeVal">1.0×</span>
     </div>
-    <div id="pills">
-      <div class="pill on"  onclick="doFilter('all',this)">🍽️ All</div>
-      <div class="pill"     onclick="doFilter('pizza',this)">🍕 Pizza</div>
-      <div class="pill"     onclick="doFilter('burger',this)">🍔 Burger</div>
-      <div class="pill"     onclick="doFilter('pasta',this)">🍝 Pasta</div>
+
+    <!-- Mode buttons -->
+    <div class="btn-row">
+      <div class="mbtn on"  id="btnView"   onclick="setMode('view')">👁 VIEW</div>
+      <div class="mbtn"     id="btnMove"   onclick="setMode('move')">✋ MOVE</div>
+      <div class="mbtn"     id="btnRotate" onclick="setMode('rotate')">🔄 ROTATE</div>
+      <div class="mbtn"     id="btnReset"  onclick="doReset()">↺ RESET</div>
     </div>
-  </div>
 
-</div>
-
-<!-- ══════════════════ INFO CARD ══════════════════ -->
-<div id="infoCard">
-  <div class="cardTop">
-    <div id="cName">—</div>
-    <div id="cPrice">—</div>
   </div>
-  <div id="cDesc">—</div>
-  <div id="cTags"></div>
-  <button id="closeBtn" onclick="closeCard()">✕  Close</button>
 </div>
 
 <!-- TOAST -->
 <div id="toast"></div>
 
-<!-- ══════════════════ SCRIPT ══════════════════ -->
 <script>
-/* ── globals ── */
-var mode   = 'view';
-var scale  = 1.0;
-var dragging  = false;
-var lastX = 0, lastY = 0;
-var pinchD0 = 0, pinchS0 = 1.0;
+  var mode  = 'view';
+  var scale = 1.0;
 
-var DISHES = [
-  { id:'dish0', cat:'pizza'  },
-  { id:'dish1', cat:'pizza'  },
-  { id:'dish2', cat:'pasta'  },
-  { id:'dish3', cat:'burger' },
-];
+  var drag = false;
+  var lx = 0, ly = 0;
+  var pd0 = 0, ps0 = 1.0;
 
-/* ── begin AR ── */
-function beginAR() {
-  document.getElementById('splash').style.display = 'none';
-  document.getElementById('loadingOverlay').classList.add('show');
+  /* ── start ── */
+  function startAR() {
+    document.getElementById('splash').style.display = 'none';
+    document.getElementById('loading').classList.add('show');
 
-  // small delay so the browser can show the loading screen before getUserMedia fires
-  setTimeout(function() {
-    document.getElementById('arWrap').style.display = 'block';
-
-    var scene = document.getElementById('theScene');
-    function onReady() {
-      document.getElementById('loadingOverlay').classList.remove('show');
-      document.getElementById('hud').style.display = 'block';
-      wireUp();
-    }
-    if (scene.hasLoaded) { onReady(); }
-    else { scene.addEventListener('loaded', onReady, { once: true }); }
-
-    // Safety timeout — show HUD even if 'loaded' never fires
     setTimeout(function() {
-      if (document.getElementById('hud').style.display === 'none') {
-        document.getElementById('loadingOverlay').classList.remove('show');
+      document.getElementById('arWrap').style.display = 'block';
+      var scene = document.getElementById('arScene');
+
+      function ready() {
+        document.getElementById('loading').classList.remove('show');
         document.getElementById('hud').style.display = 'block';
-        wireUp();
+        wireMarker();
+        wireTouch();
       }
-    }, 6000);
 
-  }, 120);
-}
+      if (scene.hasLoaded) { ready(); }
+      else { scene.addEventListener('loaded', ready, { once:true }); }
 
-/* ── wire events ── */
-function wireUp() {
-  var marker = document.getElementById('hiroMarker');
-  var lost   = document.getElementById('trackLost');
+      // safety fallback
+      setTimeout(function() {
+        if (document.getElementById('hud').style.display === 'none') { ready(); }
+      }, 7000);
 
-  marker.addEventListener('markerFound', function() {
-    lost.classList.add('hide');
-    toast('✅ Menu visible! Tap a dish for details');
-    tryShowFallbacks(); // check if models loaded, show fallbacks if not
-  });
-  marker.addEventListener('markerLost', function() {
-    lost.classList.remove('hide');
-    toast('🔍 Scanning… point camera at the marker');
-  });
-
-  /* tap on dishes */
-  document.querySelectorAll('.tappable').forEach(function(el) {
-    el.addEventListener('click', function() {
-      if (mode !== 'view') return;
-      var dish = el.closest('.dish') || el.parentElement;
-      if (dish && dish.dataset.name) showCard(dish.dataset);
-    });
-  });
-
-  /* also wire parent entities */
-  document.querySelectorAll('.dish').forEach(function(el) {
-    el.addEventListener('click', function(e) {
-      if (mode !== 'view') return;
-      showCard(el.dataset);
-    });
-  });
-
-  /* touch drag / pinch on canvas */
-  var cvs = document.querySelector('#arWrap canvas');
-  if (!cvs) { setTimeout(function(){ wireTouch(); }, 1500); return; }
-  wireTouch(cvs);
-}
-
-function wireTouch(cvs) {
-  if (!cvs) cvs = document.querySelector('#arWrap canvas');
-  if (!cvs) return;
-
-  cvs.addEventListener('touchstart', function(e) {
-    dragging = false;
-    if (e.touches.length === 1) {
-      lastX = e.touches[0].clientX;
-      lastY = e.touches[0].clientY;
-    }
-    if (e.touches.length === 2) {
-      pinchD0 = ptDist(e);
-      pinchS0 = scale;
-    }
-  }, { passive: true });
-
-  cvs.addEventListener('touchmove', function(e) {
-    var mg = document.getElementById('menuGroup');
-    if (!mg) return;
-
-    if (e.touches.length === 1) {
-      var dx = e.touches[0].clientX - lastX;
-      var dy = e.touches[0].clientY - lastY;
-      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragging = true;
-
-      if (mode === 'move') {
-        var p = mg.getAttribute('position');
-        mg.setAttribute('position', { x: p.x + dx*0.0013, y: p.y, z: p.z + dy*0.0013 });
-      } else if (mode === 'rotate') {
-        var r = mg.getAttribute('rotation');
-        mg.setAttribute('rotation', { x: r.x, y: r.y + dx*0.55, z: r.z });
-      }
-      lastX = e.touches[0].clientX;
-      lastY = e.touches[0].clientY;
-    }
-
-    if (e.touches.length === 2) {
-      var d = ptDist(e);
-      scale = Math.min(Math.max(pinchS0 * (d / pinchD0), 0.1), 5.0);
-      mg.setAttribute('scale', scale+' '+scale+' '+scale);
-      syncSlider(scale);
-      dragging = true;
-      e.preventDefault();
-    }
-  }, { passive: false });
-}
-
-function ptDist(e) {
-  var dx = e.touches[0].clientX - e.touches[1].clientX;
-  var dy = e.touches[0].clientY - e.touches[1].clientY;
-  return Math.sqrt(dx*dx + dy*dy);
-}
-
-/* ── fallback shapes if GLB didn't load ── */
-function tryShowFallbacks() {
-  for (var i = 0; i < 2; i++) {
-    var m  = document.getElementById('m'+i);
-    var fb = document.getElementById('fb'+i);
-    if (!m || !fb) continue;
-    // if the gltf-model has no object3D children, the model failed
-    if (m.object3D && m.object3D.children.length === 0) {
-      m.setAttribute('visible', false);
-      fb.setAttribute('visible', true);
-    }
+    }, 150);
   }
-}
 
-/* ── mode buttons ── */
-function setMode(m) {
-  mode = m;
-  ['view','move','rotate'].forEach(function(x) {
-    document.getElementById('btn'+x.charAt(0).toUpperCase()+x.slice(1))
-      .classList.toggle('on', x === m);
-  });
-  var msgs = { view:'👁️ Tap a dish to see details', move:'✋ Drag to move the menu', rotate:'🔄 Drag to rotate' };
-  toast(msgs[m]);
-}
+  /* ── marker found / lost ── */
+  function wireMarker() {
+    var marker = document.getElementById('hiroMarker');
+    var hint   = document.getElementById('scanHint');
 
-/* ── size slider ── */
-function doSize(v) {
-  scale = 0.1 + (v/100)*3.9;
-  var mg = document.getElementById('menuGroup');
-  if (mg) mg.setAttribute('scale', scale+' '+scale+' '+scale);
-  document.getElementById('sizeVal').textContent = scale.toFixed(1)+'×';
-  var pct = v+'%';
-  document.getElementById('sizeSlider').style.background =
-    'linear-gradient(90deg,#ff6b00 '+pct+',#2a2a2a '+pct+')';
-}
-function syncSlider(s) {
-  var v = Math.round(((s-0.1)/3.9)*100);
-  document.getElementById('sizeSlider').value = Math.min(100,Math.max(1,v));
-  document.getElementById('sizeVal').textContent = s.toFixed(1)+'×';
-}
+    marker.addEventListener('markerFound', function() {
+      hint.classList.add('hide');
+      toast('🍕 Pizza detected!');
+    });
+    marker.addEventListener('markerLost', function() {
+      hint.classList.remove('hide');
+      toast('🔍 Point at the HIRO marker');
+    });
+  }
 
-/* ── reset ── */
-function resetMenu() {
-  var mg = document.getElementById('menuGroup');
-  if (!mg) return;
-  mg.setAttribute('position','0 0 0');
-  mg.setAttribute('rotation','0 0 0');
-  mg.setAttribute('scale','1 1 1');
-  scale = 1.0;
-  document.getElementById('sizeSlider').value = 50;
-  document.getElementById('sizeVal').textContent = '1.0×';
-  toast('↺ Reset done');
-}
+  /* ── touch: move / rotate / pinch-scale ── */
+  function wireTouch() {
+    // try to grab canvas; retry if not ready yet
+    var cvs = document.querySelector('#arWrap canvas');
+    if (!cvs) { setTimeout(wireTouch, 1000); return; }
 
-/* ── filter ── */
-function doFilter(cat, el) {
-  document.querySelectorAll('.pill').forEach(function(p){ p.classList.remove('on'); });
-  el.classList.add('on');
-  DISHES.forEach(function(d) {
-    var node = document.getElementById(d.id);
-    if (node) node.setAttribute('visible', String(cat==='all' || d.cat===cat));
-  });
-  toast(cat==='all' ? '🍽️ All items' : 'Showing '+cat);
-}
+    cvs.addEventListener('touchstart', function(e) {
+      drag = false;
+      if (e.touches.length === 1) {
+        lx = e.touches[0].clientX;
+        ly = e.touches[0].clientY;
+      }
+      if (e.touches.length === 2) {
+        pd0 = pinchDist(e);
+        ps0 = scale;
+      }
+    }, { passive: true });
 
-/* ── info card ── */
-function showCard(d) {
-  document.getElementById('cName').textContent  = (d.emoji||'')+'  '+d.name;
-  document.getElementById('cPrice').textContent = d.price;
-  document.getElementById('cDesc').textContent  = d.desc;
-  var tags = (d.tags||'').split(',').filter(Boolean);
-  document.getElementById('cTags').innerHTML =
-    tags.map(function(t){ return '<span class="ctag">'+t.trim()+'</span>'; }).join('');
-  document.getElementById('infoCard').classList.add('show');
-}
-function closeCard() { document.getElementById('infoCard').classList.remove('show'); }
+    cvs.addEventListener('touchmove', function(e) {
+      var pivot = document.getElementById('pivotGroup');
+      if (!pivot) return;
 
-/* ── toast ── */
-var _tt;
-function toast(msg) {
-  var el = document.getElementById('toast');
-  el.textContent = msg; el.classList.add('show');
-  clearTimeout(_tt);
-  _tt = setTimeout(function(){ el.classList.remove('show'); }, 3000);
-}
+      /* single finger */
+      if (e.touches.length === 1) {
+        var dx = e.touches[0].clientX - lx;
+        var dy = e.touches[0].clientY - ly;
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) drag = true;
+
+        if (mode === 'move') {
+          var p = pivot.getAttribute('position');
+          pivot.setAttribute('position', {
+            x: p.x + dx * 0.0014,
+            y: p.y,
+            z: p.z + dy * 0.0014
+          });
+        }
+
+        if (mode === 'rotate') {
+          var r = pivot.getAttribute('rotation');
+          pivot.setAttribute('rotation', {
+            x: r.x,
+            y: r.y + dx * 0.6,
+            z: r.z
+          });
+        }
+
+        lx = e.touches[0].clientX;
+        ly = e.touches[0].clientY;
+      }
+
+      /* two fingers — pinch scale */
+      if (e.touches.length === 2) {
+        var d = pinchDist(e);
+        scale = Math.min(Math.max(ps0 * (d / pd0), 0.1), 6.0);
+        pivot.setAttribute('scale', scale + ' ' + scale + ' ' + scale);
+        syncSlider(scale);
+        drag = true;
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
+
+  function pinchDist(e) {
+    var dx = e.touches[0].clientX - e.touches[1].clientX;
+    var dy = e.touches[0].clientY - e.touches[1].clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+  }
+
+  /* ── mode ── */
+  function setMode(m) {
+    mode = m;
+    ['view','move','rotate'].forEach(function(x) {
+      document.getElementById('btn' + x.charAt(0).toUpperCase() + x.slice(1))
+        .classList.toggle('on', x === m);
+    });
+    var msg = { view:'👁 View mode', move:'✋ Drag to move pizza', rotate:'🔄 Drag to rotate pizza' };
+    toast(msg[m]);
+  }
+
+  /* ── size slider ── */
+  function doSize(v) {
+    // v: 1–100 → scale: 0.05–0.5 (sensible range for a pizza on a marker)
+    scale = 0.05 + (v / 100) * 0.45;
+    var pivot = document.getElementById('pivotGroup');
+    if (pivot) pivot.setAttribute('scale', scale + ' ' + scale + ' ' + scale);
+
+    // also update the model's own scale to keep it reasonable
+    var model = document.getElementById('pizzaModel');
+    if (model) {
+      var s = 0.08 + (v / 100) * 0.22;
+      model.setAttribute('scale', s + ' ' + s + ' ' + s);
+    }
+
+    document.getElementById('sizeVal').textContent = (v / 50).toFixed(1) + '×';
+    var pct = v + '%';
+    document.getElementById('sizeSlider').style.background =
+      'linear-gradient(90deg,#ff6b00 ' + pct + ',#2a2a2a ' + pct + ')';
+  }
+
+  function syncSlider(s) {
+    var v = Math.round(((s - 0.1) / 3.9) * 100);
+    document.getElementById('sizeSlider').value = Math.min(100, Math.max(1, v));
+    document.getElementById('sizeVal').textContent = s.toFixed(1) + '×';
+  }
+
+  /* ── reset ── */
+  function doReset() {
+    var pivot = document.getElementById('pivotGroup');
+    var model = document.getElementById('pizzaModel');
+    if (pivot) {
+      pivot.setAttribute('position', '0 0 0');
+      pivot.setAttribute('rotation', '0 0 0');
+      pivot.setAttribute('scale',    '1 1 1');
+    }
+    if (model) {
+      model.setAttribute('scale',    '0.15 0.15 0.15');
+      model.setAttribute('position', '0 0.02 0');
+      model.setAttribute('rotation', '0 0 0');
+    }
+    scale = 1.0;
+    document.getElementById('sizeSlider').value = 50;
+    document.getElementById('sizeVal').textContent = '1.0×';
+    toast('↺ Reset');
+  }
+
+  /* ── toast ── */
+  var _t;
+  function toast(msg) {
+    var el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('show');
+    clearTimeout(_t);
+    _t = setTimeout(function() { el.classList.remove('show'); }, 2800);
+  }
 </script>
 </body>
 </html>
