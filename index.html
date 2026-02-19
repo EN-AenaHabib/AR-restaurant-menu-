@@ -1,136 +1,49 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <title>AR Pizza Menu</title>
-
-  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
-
-  <style>
-    * { margin:0; padding:0; }
-    html, body { width:100%; height:100%; overflow:hidden; background:#000; }
-
-    /* Force-hide all default AR.js and A-Frame UI elements */
-    .a-enter-ar, .a-enter-vr, .rs-base, .a-loader-title, .a-orientation-modal, #ARjsDebugUIContainer { 
-        display:none !important; 
-    }
-
-    #splash {
-      position:fixed; inset:0; z-index:9999;
-      background:#000; display:flex; flex-direction:column;
-      align-items:center; justify-content:center; gap:20px;
-      font-family: Arial, sans-serif;
-    }
-    #splash h1 { color:#ff9b3c; }
-    #goBtn {
-      padding:14px 50px; background:#ff6b00; border:none; border-radius:40px;
-      color:#fff; font-size:16px; font-weight:700; cursor:pointer;
-    }
-    #arWrap { display:none; position:fixed; inset:0; z-index:1; }
-    #ctrl {
-      position:fixed; bottom:0; left:0; right:0; z-index:100;
-      background:rgba(0,0,0,0.8); padding:20px;
-      display:none; flex-direction:column; gap:15px;
-      font-family:Arial, sans-serif;
-    }
-    .btns { display:flex; gap:10px; }
-    .btn {
-      flex:1; padding:12px; border-radius:10px; background:rgba(255,255,255,0.1);
-      color:#fff; text-align:center; font-size:12px; cursor:pointer; border: 1px solid #ff6b00;
-    }
-    .btn.on { background:#ff6b00; }
-  </style>
-</head>
 <body>
-
-<div id="splash">
-  <h1>🍕 AR Menu</h1>
-  <button id="goBtn" onclick="go()">Start AR</button>
-</div>
-
-<div id="arWrap">
-  <a-scene
-    embedded
-    arjs="sourceType:webcam; debugUIEnabled:false; detectionMode:mono_and_matrix;"
-    vr-mode-ui="enabled:false"
-    device-orientation-permission-ui="enabled:false">
-
-    <a-assets>
-      <a-asset-item id="pm" src="pizza.glb"></a-asset-item>
-    </a-assets>
-
-    <a-marker preset="hiro">
-      <a-entity
-        id="pizza"
-        gltf-model="#pm"
-        position="0 0 0"
-        rotation="0 0 0"
-        scale="0.5 0.5 0.5">
-      </a-entity>
-    </a-marker>
-
-    <a-entity camera></a-entity>
-  </a-scene>
-</div>
-
-<div id="ctrl">
-  <div class="btns">
-    <div class="btn on" id="bMove" onclick="setMode('move')">✋ MOVE</div>
-    <div class="btn" id="bRot" onclick="setMode('rotate')">🔄 ROTATE</div>
-    <div class="btn" onclick="reset()">↺ RESET</div>
+  <div id="splash" style="position:fixed; inset:0; z-index:9999; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; font-family:sans-serif;">
+    <h1 style="color:#ff9b3c;">🍕 Bella Vista AR</h1>
+    <button onclick="startApp()" style="margin-top:20px; padding:15px 40px; background:#ff6b00; border:none; border-radius:30px; color:white; font-weight:bold;">Start Menu</button>
   </div>
-</div>
 
-<script>
-  let mode = 'move';
-  let pizza = null;
+  <div id="arWrap" style="display:none;">
+    <a-scene 
+      embedded 
+      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;" 
+      vr-mode-ui="enabled: false"
+      device-orientation-permission-ui="enabled: false">
+      
+      <a-assets>
+        <a-asset-item id="pizzaModel" src="pizza.glb"></a-asset-item>
+      </a-assets>
 
-  function go() {
-    document.getElementById('splash').style.display = 'none';
-    document.getElementById('arWrap').style.display = 'block';
-    document.getElementById('ctrl').style.display = 'flex';
-    pizza = document.getElementById('pizza');
-    initTouch();
-  }
+      <a-marker preset="hiro">
+        <a-entity
+          id="pizzaEntity"
+          gltf-model="#pizzaModel"
+          position="0 0.1 0" 
+          rotation="0 0 0" 
+          scale="0.2 0.2 0.2">
+        </a-entity>
+      </a-marker>
 
-  function setMode(m) {
-    mode = m;
-    document.getElementById('bMove').classList.toggle('on', m === 'move');
-    document.getElementById('bRot').classList.toggle('on', m === 'rotate');
-  }
+      <a-entity camera></a-entity>
+    </a-scene>
+  </div>
 
-  function initTouch() {
-    let startX, startY;
-    document.addEventListener('touchstart', e => {
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    });
+  <div id="ctrl" style="position:fixed; bottom:0; width:100%; z-index:100; display:none; background:rgba(0,0,0,0.8); padding:20px; flex-direction:column; align-items:center;">
+     <button onclick="rotatePizza()" style="padding:10px; background:#ff6b00; color:white; border:none; border-radius:5px;">Rotate 🔄</button>
+  </div>
 
-    document.addEventListener('touchmove', e => {
-      if (!pizza) return;
-      let dx = e.touches[0].clientX - startX;
-      let dy = e.touches[0].clientY - startY;
+  <script>
+    function startApp() {
+      document.getElementById('splash').style.display = 'none';
+      document.getElementById('arWrap').style.display = 'block';
+      document.getElementById('ctrl').style.display = 'flex';
+    }
 
-      if (mode === 'move') {
-        let pos = pizza.getAttribute('position');
-        pizza.setAttribute('position', {x: pos.x + dx * 0.01, y: pos.y, z: pos.z + dy * 0.01});
-      } else {
-        let rot = pizza.getAttribute('rotation');
-        pizza.setAttribute('rotation', {x: rot.x, y: rot.y + dx, z: rot.z});
-      }
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-    });
-  }
-
-  function reset() {
-    pizza.setAttribute('position', '0 0 0');
-    pizza.setAttribute('rotation', '0 0 0');
-    pizza.setAttribute('scale', '0.5 0.5 0.5');
-  }
-</script>
+    function rotatePizza() {
+      let p = document.getElementById('pizzaEntity');
+      let curr = p.getAttribute('rotation');
+      p.setAttribute('rotation', {x: curr.x, y: curr.y + 45, z: curr.z});
+    }
+  </script>
 </body>
-</html>
