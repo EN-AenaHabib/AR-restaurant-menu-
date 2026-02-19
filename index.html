@@ -1,677 +1,540 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
   <title>AR Restaurant Menu</title>
 
-  <!-- MindAR + Three.js -->
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-three.prod.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+  <!-- AR.js for A-Frame (marker-based, no ARCore needed) -->
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
 
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #000; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+    body { background: #000; font-family: 'Segoe UI', Arial, sans-serif; overflow: hidden; touch-action: none; }
 
-    /* ── Loading Screen ── */
-    #loading-screen {
+    /* ── SPLASH SCREEN ── */
+    #splash {
       position: fixed; inset: 0; z-index: 9999;
-      background: linear-gradient(135deg, #1a0a00 0%, #3d1a00 50%, #1a0a00 100%);
+      background: radial-gradient(ellipse at center, #2a0e00 0%, #0d0400 100%);
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 20px;
-    }
-    #loading-screen .logo {
-      font-size: 52px; margin-bottom: 8px;
-      animation: pulse 1.5s ease-in-out infinite;
-    }
-    #loading-screen h1 {
-      color: #ff9b3c; font-size: 26px; font-weight: 800;
-      letter-spacing: 2px; text-transform: uppercase;
-    }
-    #loading-screen p { color: #ffcc99; font-size: 14px; opacity: 0.8; }
-    .loader-bar {
-      width: 220px; height: 4px; background: #333;
-      border-radius: 4px; overflow: hidden; margin-top: 10px;
-    }
-    .loader-fill {
-      height: 100%; width: 0%;
-      background: linear-gradient(90deg, #ff6b00, #ff9b3c);
-      border-radius: 4px;
-      animation: load 2.5s ease forwards;
-    }
-    @keyframes load { to { width: 100%; } }
-    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.1)} }
-
-    /* ── Scan Screen ── */
-    #scan-screen {
-      position: fixed; inset: 0; z-index: 9998;
-      background: linear-gradient(135deg, #0d0500 0%, #2b0f00 100%);
-      display: none; flex-direction: column;
-      align-items: center; justify-content: center; gap: 18px;
+      align-items: center; justify-content: center; gap: 16px;
       padding: 30px;
     }
-    #scan-screen .scan-icon {
-      width: 200px; height: 200px; border-radius: 24px;
-      border: 3px solid #ff6b00;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 80px; position: relative;
-      animation: scanPulse 2s ease-in-out infinite;
+    .splash-icon { font-size: 72px; animation: bob 2s ease-in-out infinite; }
+    @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+    .splash-title {
+      font-size: 30px; font-weight: 900; letter-spacing: 3px;
+      color: #ff9b3c; text-transform: uppercase;
     }
-    #scan-screen .scan-icon::before, #scan-screen .scan-icon::after {
-      content: ''; position: absolute;
-      width: 30px; height: 30px;
-      border-color: #ff9b3c; border-style: solid;
+    .splash-sub { color: #ffcc9966; font-size: 13px; text-align: center; max-width: 260px; line-height: 1.7; }
+
+    /* Marker preview box */
+    .marker-box {
+      width: 160px; height: 160px; margin: 8px 0;
+      border: 3px solid #ff6b00; border-radius: 16px; overflow: hidden;
+      position: relative; display: flex; align-items: center; justify-content: center;
     }
-    #scan-screen .scan-icon::before {
-      top: -3px; left: -3px;
-      border-width: 4px 0 0 4px; border-radius: 6px 0 0 0;
+    .marker-box img { width: 100%; height: 100%; object-fit: contain; }
+    .marker-hint {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: rgba(255,107,0,0.85); color: white;
+      font-size: 10px; font-weight: 700; text-align: center;
+      padding: 4px; letter-spacing: 1px;
     }
-    #scan-screen .scan-icon::after {
-      bottom: -3px; right: -3px;
-      border-width: 0 4px 4px 0; border-radius: 0 0 6px 0;
-    }
-    .scan-line {
+    .scan-line-anim {
       position: absolute; width: 80%; height: 2px;
       background: linear-gradient(90deg, transparent, #ff6b00, transparent);
-      animation: scanLine 2s linear infinite;
+      animation: scanAnim 2s linear infinite;
     }
-    @keyframes scanLine {
-      0% { top: 10%; } 100% { top: 90%; }
-    }
-    @keyframes scanPulse {
-      0%,100%{box-shadow:0 0 20px #ff6b0033}
-      50%{box-shadow:0 0 50px #ff6b0088}
-    }
-    #scan-screen h2 { color: #ff9b3c; font-size: 22px; font-weight: 700; }
-    #scan-screen p { color: #ffcc9988; font-size: 13px; text-align: center; max-width: 280px; }
-    #start-btn {
-      margin-top: 10px; padding: 16px 48px;
-      background: linear-gradient(135deg, #ff6b00, #ff9b3c);
-      color: white; border: none; border-radius: 50px;
-      font-size: 16px; font-weight: 700; letter-spacing: 1px;
+    @keyframes scanAnim { 0%{top:10%} 100%{top:88%} }
+    .marker-label { color: #ffcc9988; font-size: 12px; text-align: center; }
+
+    /* Start button */
+    #launch-btn {
+      margin-top: 8px; padding: 16px 52px;
+      background: linear-gradient(135deg, #ff6b00, #ffaa44);
+      border: none; border-radius: 50px; color: white;
+      font-size: 17px; font-weight: 800; letter-spacing: 1px;
       cursor: pointer; text-transform: uppercase;
-      box-shadow: 0 8px 30px #ff6b0055;
-      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 8px 30px rgba(255,107,0,0.45);
+      transition: transform 0.15s;
     }
-    #start-btn:active { transform: scale(0.95); }
+    #launch-btn:active { transform: scale(0.95); }
+    .badge {
+      font-size: 10px; background: rgba(255,107,0,0.2);
+      border: 1px solid rgba(255,107,0,0.4);
+      color: #ff9b3c; padding: 4px 12px;
+      border-radius: 20px; letter-spacing: 1px;
+    }
 
-    /* ── AR Canvas ── */
-    #ar-container {
-      position: fixed; inset: 0; z-index: 1;
-      display: none;
-    }
+    /* ── AR SCENE ── */
+    #ar-scene-wrap { position: fixed; inset: 0; z-index: 1; display: none; }
 
-    /* ── HUD Controls ── */
-    #hud {
-      position: fixed; z-index: 100;
-      display: none;
-    }
+    /* ── HUD ── */
+    #hud { position: fixed; inset: 0; z-index: 100; pointer-events: none; display: none; }
 
     /* Top bar */
-    #top-bar {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-      display: none;
-      background: linear-gradient(180deg, rgba(0,0,0,0.85) 0%, transparent 100%);
-      padding: 16px 20px 30px;
-      flex-direction: row; align-items: center; justify-content: space-between;
+    #topbar {
+      position: absolute; top: 0; left: 0; right: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+      padding: 14px 18px 28px;
+      display: flex; align-items: center; justify-content: space-between;
+      pointer-events: all;
     }
-    #top-bar .restaurant-name {
-      color: #ff9b3c; font-size: 18px; font-weight: 800;
-      letter-spacing: 1px;
+    .brand { color: #ff9b3c; font-size: 17px; font-weight: 800; letter-spacing: 1px; }
+    .ar-badge {
+      background: rgba(255,107,0,0.25); border: 1px solid #ff6b00;
+      color: #ff9b3c; font-size: 10px; font-weight: 700;
+      padding: 4px 10px; border-radius: 20px; letter-spacing: 1px;
+      animation: glowBadge 2s ease-in-out infinite;
     }
-    #top-bar .tag {
-      background: #ff6b00; color: white;
-      font-size: 10px; font-weight: 700;
-      padding: 4px 10px; border-radius: 20px;
-      letter-spacing: 1px; text-transform: uppercase;
+    @keyframes glowBadge { 0%,100%{box-shadow:none} 50%{box-shadow:0 0 12px #ff6b0088} }
+
+    /* Tracking status */
+    #track-status {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center; pointer-events: none;
+      transition: opacity 0.4s;
     }
+    #track-status .finder {
+      width: 170px; height: 170px; margin: 0 auto 12px;
+      border: 2px dashed rgba(255,107,0,0.5); border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 52px;
+      animation: findPulse 1.6s ease-in-out infinite;
+    }
+    @keyframes findPulse {
+      0%,100%{border-color:rgba(255,107,0,0.3);transform:scale(1)}
+      50%{border-color:rgba(255,107,0,0.9);transform:scale(1.04)}
+    }
+    #track-status p { color: #ffcc9977; font-size: 13px; }
+    #track-status.hidden { opacity: 0; }
 
     /* Right controls */
-    #right-controls {
-      position: fixed; right: 14px; top: 50%;
+    #right-ctrl {
+      position: absolute; right: 12px; top: 50%;
       transform: translateY(-50%);
-      z-index: 200; display: none;
-      flex-direction: column; gap: 10px;
+      display: flex; flex-direction: column; gap: 8px;
+      pointer-events: all;
     }
-    .ctrl-btn {
-      width: 48px; height: 48px; border-radius: 14px;
-      background: rgba(0,0,0,0.75);
-      border: 1.5px solid rgba(255,107,0,0.5);
-      color: white; font-size: 20px;
+    .ctrl-group { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .cbtn {
+      width: 50px; height: 50px; border-radius: 14px;
+      background: rgba(0,0,0,0.72); border: 1.5px solid rgba(255,107,0,0.35);
+      color: white; font-size: 21px;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; backdrop-filter: blur(10px);
-      transition: all 0.2s; user-select: none;
+      cursor: pointer; backdrop-filter: blur(8px);
+      transition: all 0.18s; user-select: none; -webkit-user-select: none;
     }
-    .ctrl-btn:active, .ctrl-btn.active {
-      background: rgba(255,107,0,0.5);
-      border-color: #ff6b00;
-      transform: scale(0.93);
-    }
-    .ctrl-label {
-      color: #ff9b3c88; font-size: 9px; text-align: center;
-      margin-top: -6px; letter-spacing: 0.5px;
-    }
+    .cbtn:active { transform: scale(0.9); background: rgba(255,107,0,0.4); }
+    .cbtn.active { background: rgba(255,107,0,0.45); border-color: #ff6b00; }
+    .clabel { color: #ff9b3c77; font-size: 9px; letter-spacing: 0.5px; }
 
-    /* Bottom controls */
-    #bottom-controls {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      z-index: 200; display: none;
-      background: linear-gradient(0deg, rgba(0,0,0,0.9) 0%, transparent 100%);
-      padding: 20px 20px 28px;
-      flex-direction: column; gap: 12px;
+    /* Bottom bar */
+    #bottombar {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(0deg, rgba(0,0,0,0.88) 0%, transparent 100%);
+      padding: 18px 16px 26px;
+      pointer-events: all;
+      display: flex; flex-direction: column; gap: 12px;
     }
 
     /* Size slider */
-    #size-row {
-      display: flex; align-items: center; gap: 12px;
-    }
-    #size-row label { color: #ff9b3c; font-size: 12px; font-weight: 600; min-width: 36px; }
-    #size-slider {
+    .slider-row { display: flex; align-items: center; gap: 10px; }
+    .slider-label { color: #ff9b3c; font-size: 11px; font-weight: 700; min-width: 34px; }
+    #sizeSlider {
       flex: 1; -webkit-appearance: none; height: 4px;
-      background: linear-gradient(90deg, #ff6b00 var(--val,50%), #333 var(--val,50%));
+      background: linear-gradient(90deg, #ff6b00 50%, #333 50%);
       border-radius: 4px; outline: none;
     }
-    #size-slider::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 20px; height: 20px;
+    #sizeSlider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 22px; height: 22px;
       border-radius: 50%; background: #ff9b3c;
-      box-shadow: 0 2px 8px #ff6b0088; cursor: pointer;
+      box-shadow: 0 2px 10px rgba(255,107,0,0.6); cursor: pointer;
     }
-    #size-val { color: #ffcc99; font-size: 12px; min-width: 32px; text-align: right; }
+    .slider-val { color: #ffcc99; font-size: 11px; min-width: 30px; text-align: right; }
 
-    /* Menu category pills */
-    #menu-pills {
-      display: flex; gap: 8px; overflow-x: auto;
-      scrollbar-width: none; padding-bottom: 2px;
+    /* Category pills */
+    #pills {
+      display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px;
     }
-    #menu-pills::-webkit-scrollbar { display: none; }
+    #pills::-webkit-scrollbar { display: none; }
     .pill {
-      white-space: nowrap; padding: 8px 18px;
-      border-radius: 30px; font-size: 12px; font-weight: 700;
-      cursor: pointer; transition: all 0.2s;
-      border: 1.5px solid rgba(255,107,0,0.4);
-      color: #ff9b3caa; background: rgba(0,0,0,0.5);
-      letter-spacing: 0.5px;
+      white-space: nowrap; padding: 8px 16px; border-radius: 30px;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      border: 1.5px solid rgba(255,107,0,0.3); color: #ff9b3c99;
+      background: rgba(0,0,0,0.45); transition: all 0.18s; letter-spacing: 0.3px;
     }
     .pill.active {
-      background: linear-gradient(135deg, #ff6b00, #ff9b3c);
+      background: linear-gradient(135deg, #ff6b00, #ffaa44);
       color: white; border-color: transparent;
-      box-shadow: 0 4px 16px #ff6b0055;
+      box-shadow: 0 4px 16px rgba(255,107,0,0.4);
     }
 
-    /* ── Info Card ── */
-    #info-card {
-      position: fixed; bottom: 100px; left: 50%;
-      transform: translateX(-50%) translateY(120%);
-      z-index: 300; width: calc(100% - 40px); max-width: 380px;
-      background: rgba(10,4,0,0.95);
-      border: 1.5px solid rgba(255,107,0,0.4);
-      border-radius: 24px; padding: 22px;
-      backdrop-filter: blur(20px);
-      box-shadow: 0 20px 60px rgba(255,107,0,0.2);
-      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    /* ── INFO CARD ── */
+    #infoCard {
+      position: fixed; bottom: 130px; left: 50%;
+      transform: translateX(-50%) translateY(140%);
+      z-index: 300; width: calc(100% - 36px); max-width: 390px;
+      background: rgba(8,3,0,0.96);
+      border: 1.5px solid rgba(255,107,0,0.35);
+      border-radius: 26px; padding: 22px 22px 18px;
+      backdrop-filter: blur(24px);
+      box-shadow: 0 24px 70px rgba(255,107,0,0.18);
+      transition: transform 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    #info-card.show {
-      transform: translateX(-50%) translateY(0);
-    }
-    #info-card .card-header {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      margin-bottom: 12px;
-    }
-    #info-card h3 { color: #ff9b3c; font-size: 20px; font-weight: 800; }
-    #info-card .price {
-      background: linear-gradient(135deg, #ff6b00, #ff9b3c);
+    #infoCard.open { transform: translateX(-50%) translateY(0); }
+    .card-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    #cardName { color: #ff9b3c; font-size: 20px; font-weight: 800; }
+    #cardPrice {
+      background: linear-gradient(135deg, #ff6b00, #ffaa44);
       color: white; padding: 6px 14px; border-radius: 20px;
-      font-size: 15px; font-weight: 700;
+      font-size: 14px; font-weight: 800; white-space: nowrap;
     }
-    #info-card p { color: #ffcc9988; font-size: 13px; line-height: 1.6; margin-bottom: 14px; }
-    #info-card .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
-    #info-card .food-tag {
-      background: rgba(255,107,0,0.15);
+    #cardDesc { color: #ffcc9977; font-size: 13px; line-height: 1.65; margin: 10px 0; }
+    #cardTags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+    .ftag {
+      background: rgba(255,107,0,0.12); border: 1px solid rgba(255,107,0,0.25);
+      color: #ff9b3caa; font-size: 11px; padding: 3px 10px; border-radius: 20px;
+    }
+    #closeCard {
+      display: block; width: 100%;
+      padding: 12px; background: rgba(255,107,0,0.15);
       border: 1px solid rgba(255,107,0,0.3);
-      color: #ff9b3caa; font-size: 11px;
-      padding: 4px 10px; border-radius: 20px;
+      border-radius: 14px; color: #ff9b3c;
+      font-size: 14px; font-weight: 700; cursor: pointer;
+      text-align: center; transition: background 0.18s;
     }
-    #close-card {
-      position: absolute; top: 16px; right: 16px;
-      width: 32px; height: 32px; border-radius: 50%;
-      background: rgba(255,107,0,0.2); border: none;
-      color: #ff9b3c; font-size: 18px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-    }
+    #closeCard:active { background: rgba(255,107,0,0.35); }
 
-    /* ── Instructions Toast ── */
+    /* ── TOAST ── */
     #toast {
-      position: fixed; top: 80px; left: 50%;
-      transform: translateX(-50%);
-      z-index: 400; background: rgba(0,0,0,0.85);
-      color: #ffcc99; font-size: 13px; padding: 10px 20px;
-      border-radius: 30px; border: 1px solid rgba(255,107,0,0.3);
+      position: fixed; top: 75px; left: 50%;
+      transform: translateX(-50%); z-index: 500;
+      background: rgba(0,0,0,0.82);
+      border: 1px solid rgba(255,107,0,0.3);
+      color: #ffcc99; font-size: 13px;
+      padding: 9px 20px; border-radius: 30px;
       backdrop-filter: blur(10px);
-      transition: opacity 0.5s;
-      white-space: nowrap;
+      white-space: nowrap; pointer-events: none;
+      transition: opacity 0.5s; opacity: 0;
     }
-
-    /* ── No tracking indicator ── */
-    #tracking-indicator {
-      position: fixed; top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      z-index: 150; text-align: center;
-      display: none;
-      pointer-events: none;
-    }
-    #tracking-indicator .finder {
-      width: 180px; height: 180px; margin: 0 auto 14px;
-      border: 2px dashed rgba(255,107,0,0.5);
-      border-radius: 16px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 50px;
-      animation: dashedPulse 1.5s ease-in-out infinite;
-    }
-    @keyframes dashedPulse {
-      0%,100%{border-color:rgba(255,107,0,0.3); transform:scale(1)}
-      50%{border-color:rgba(255,107,0,0.8); transform:scale(1.03)}
-    }
-    #tracking-indicator p { color: #ffcc9977; font-size: 13px; }
+    #toast.show { opacity: 1; }
   </style>
 </head>
 <body>
 
-<!-- LOADING -->
-<div id="loading-screen">
-  <div class="logo">🍕</div>
-  <h1>AR Menu</h1>
-  <p>Preparing your experience...</p>
-  <div class="loader-bar"><div class="loader-fill"></div></div>
+<!-- ════════ SPLASH ════════ -->
+<div id="splash">
+  <div class="splash-icon">🍕</div>
+  <div class="splash-title">AR Menu</div>
+  <span class="badge">NO APP NEEDED · WORKS ON ANY PHONE</span>
+
+  <div class="marker-box">
+    <!-- HIRO marker preview — this is what you print and place on the table -->
+    <img
+      src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png"
+      alt="HIRO Marker"
+      onerror="this.style.display='none'; document.getElementById('markerFallback').style.display='flex'"/>
+    <div id="markerFallback" style="display:none; flex-direction:column; align-items:center; gap:6px; padding:10px; text-align:center;">
+      <div style="font-size:38px">🖨️</div>
+      <div style="color:#ff9b3c; font-size:11px;">Print HIRO marker<br/>from AR.js GitHub</div>
+    </div>
+    <div class="scan-line-anim"></div>
+    <div class="marker-hint">PRINT &amp; PLACE ON TABLE</div>
+  </div>
+
+  <div class="marker-label">Print the marker above → place on table → tap START</div>
+  <p class="splash-sub">Point your camera at the printed marker and the 3D menu will float above your table</p>
+  <button id="launch-btn" onclick="launchAR()">🎯 Start AR</button>
 </div>
 
-<!-- SCAN START SCREEN -->
-<div id="scan-screen">
-  <div class="scan-icon">
-    🍕
-    <div class="scan-line"></div>
-  </div>
-  <h2>Point at QR / Marker</h2>
-  <p>Place the printed marker on your table and point your camera at it to see the AR menu</p>
-  <button id="start-btn" onclick="startAR()">Start AR Camera</button>
+<!-- ════════ AR SCENE ════════ -->
+<div id="ar-scene-wrap">
+  <a-scene
+    id="arScene"
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+    renderer="logarithmicDepthBuffer: true; antialias: true;"
+    vr-mode-ui="enabled: false"
+    style="width:100%;height:100%;">
+
+    <a-assets>
+      <a-asset-item id="pizzaModel" src="pizza.glb"></a-asset-item>
+    </a-assets>
+
+    <!-- HIRO MARKER — built-in, no .mind file needed -->
+    <a-marker id="mainMarker" preset="hiro" smooth="true" smoothCount="5">
+
+      <a-entity id="menuGroup" position="0 0 0" rotation="0 0 0" scale="1 1 1">
+
+        <!-- Table mat -->
+        <a-cylinder position="0 0.005 0" radius="0.62" height="0.008"
+          color="#1a0800" opacity="0.65" roughness="0.9">
+        </a-cylinder>
+
+        <!-- ── ITEM 0 — Margherita Pizza ── -->
+        <a-entity id="item-0" class="menu-item"
+          data-name="Margherita Pizza" data-price="$12.99"
+          data-desc="Fresh tomato sauce, mozzarella and basil on a crispy wood-fired crust."
+          data-tags="Vegetarian,Classic,Best Seller" data-emoji="🍕"
+          position="-0.35 0 -0.1">
+
+          <a-gltf-model src="#pizzaModel" scale="0.08 0.08 0.08" rotation="-90 0 0"
+            animation__float="property: position; from: 0 0.06 0; to: 0 0.14 0; dur: 1800; dir: alternate; loop: true; easing: easeInOutSine"
+            animation__spin="property: rotation; to: -90 360 0; dur: 5000; loop: true; easing: linear"
+            onerror="this.setAttribute('visible',false); document.getElementById('fb0').setAttribute('visible',true)">
+          </a-gltf-model>
+          <!-- Fallback shape -->
+          <a-cylinder id="fb0" visible="false" radius="0.1" height="0.035" color="#e8441a"
+            position="0 0.08 0"
+            animation__float="property: position; from: 0 0.06 0; to: 0 0.14 0; dur: 1800; dir: alternate; loop: true; easing: easeInOutSine"
+            animation__spin="property: rotation; to: 0 360 0; dur: 5000; loop: true; easing: linear">
+          </a-cylinder>
+
+          <a-text value="Margherita" align="center" position="0 0.26 0" color="#ff9b3c" width="1.1"></a-text>
+          <a-text value="$12.99"     align="center" position="0 0.18 0" color="#ffffff"  width="0.85"></a-text>
+          <!-- Tap target -->
+          <a-plane position="0 0.1 0" rotation="-90 0 0" width="0.3" height="0.3" opacity="0.0" class="clickable"></a-plane>
+        </a-entity>
+
+        <!-- ── ITEM 1 — Pepperoni Supreme ── -->
+        <a-entity id="item-1" class="menu-item"
+          data-name="Pepperoni Supreme" data-price="$14.99"
+          data-desc="Loaded with premium pepperoni, extra cheese, and house-made tomato sauce."
+          data-tags="Spicy,Popular,Chef's Choice" data-emoji="🍕"
+          position="0.35 0 -0.1">
+
+          <a-gltf-model src="#pizzaModel" scale="0.08 0.08 0.08" rotation="-90 0 0"
+            animation__float="property: position; from: 0 0.08 0; to: 0 0.16 0; dur: 2100; dir: alternate; loop: true; easing: easeInOutSine"
+            animation__spin="property: rotation; to: -90 360 0; dur: 4500; loop: true; easing: linear"
+            onerror="this.setAttribute('visible',false); document.getElementById('fb1').setAttribute('visible',true)">
+          </a-gltf-model>
+          <a-cylinder id="fb1" visible="false" radius="0.1" height="0.035" color="#c0392b"
+            position="0 0.1 0"
+            animation__float="property: position; from: 0 0.08 0; to: 0 0.16 0; dur: 2100; dir: alternate; loop: true; easing: easeInOutSine"
+            animation__spin="property: rotation; to: 0 360 0; dur: 4500; loop: true; easing: linear">
+          </a-cylinder>
+
+          <a-text value="Pepperoni" align="center" position="0 0.26 0" color="#ff9b3c" width="1.1"></a-text>
+          <a-text value="$14.99"    align="center" position="0 0.18 0" color="#ffffff"  width="0.85"></a-text>
+          <a-plane position="0 0.1 0" rotation="-90 0 0" width="0.3" height="0.3" opacity="0.0" class="clickable"></a-plane>
+        </a-entity>
+
+        <!-- ── ITEM 2 — Pasta ── -->
+        <a-entity id="item-2" class="menu-item"
+          data-name="Pasta Alfredo" data-price="$10.99"
+          data-desc="Creamy white sauce with aged parmesan and fresh herbs."
+          data-tags="Vegetarian,Creamy,Comfort Food" data-emoji="🍝"
+          position="0 0 0.38">
+
+          <a-sphere radius="0.09" color="#f5c518" roughness="0.6"
+            position="0 0.1 0"
+            animation__float="property: position; from: 0 0.07 0; to: 0 0.15 0; dur: 1600; dir: alternate; loop: true; easing: easeInOutSine"
+            animation__spin="property: rotation; to: 0 360 0; dur: 6000; loop: true; easing: linear">
+          </a-sphere>
+
+          <a-text value="🍝 Pasta"  align="center" position="0 0.26 0" color="#ff9b3c" width="1.1"></a-text>
+          <a-text value="$10.99"    align="center" position="0 0.18 0" color="#ffffff"  width="0.85"></a-text>
+          <a-plane position="0 0.1 0" rotation="-90 0 0" width="0.3" height="0.3" opacity="0.0" class="clickable"></a-plane>
+        </a-entity>
+
+        <!-- ── ITEM 3 — Cheeseburger ── -->
+        <a-entity id="item-3" class="menu-item"
+          data-name="Classic Cheeseburger" data-price="$9.99"
+          data-desc="Juicy beef patty, cheddar, lettuce, tomato and our secret sauce."
+          data-tags="Juicy,Comfort Food,Popular" data-emoji="🍔"
+          position="0 0 -0.42">
+
+          <a-box width="0.14" height="0.1" depth="0.14" color="#d4521a" roughness="0.7"
+            position="0 0.1 0"
+            animation__float="property: position; from: 0 0.08 0; to: 0 0.16 0; dur: 2300; dir: alternate; loop: true; easing: easeInOutSine"
+            animation__spin="property: rotation; to: 0 360 0; dur: 5500; loop: true; easing: linear">
+          </a-box>
+
+          <a-text value="🍔 Burger" align="center" position="0 0.26 0" color="#ff9b3c" width="1.1"></a-text>
+          <a-text value="$9.99"     align="center" position="0 0.18 0" color="#ffffff"  width="0.85"></a-text>
+          <a-plane position="0 0.1 0" rotation="-90 0 0" width="0.3" height="0.3" opacity="0.0" class="clickable"></a-plane>
+        </a-entity>
+
+      </a-entity><!-- /menuGroup -->
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
 </div>
 
-<!-- AR CONTAINER -->
-<div id="ar-container"></div>
+<!-- ════════ HUD ════════ -->
+<div id="hud">
 
-<!-- TOP BAR -->
-<div id="top-bar">
-  <span class="restaurant-name">🍽️ Bella Vista</span>
-  <span class="tag">AR Menu</span>
-</div>
+  <div id="topbar">
+    <span class="brand">🍽️ Bella Vista</span>
+    <span class="ar-badge">● LIVE AR</span>
+  </div>
 
-<!-- TRACKING LOST INDICATOR -->
-<div id="tracking-indicator">
-  <div class="finder">🔍</div>
-  <p>Point camera at the marker</p>
-</div>
+  <div id="track-status">
+    <div class="finder">🔍</div>
+    <p>Point at the HIRO marker on the table</p>
+  </div>
 
-<!-- RIGHT CONTROLS -->
-<div id="right-controls">
-  <div>
-    <div class="ctrl-btn" id="btn-move" onclick="setMode('move')" title="Move">✋</div>
-    <div class="ctrl-label">MOVE</div>
+  <div id="right-ctrl">
+    <div class="ctrl-group">
+      <div class="cbtn active" id="btn-view"   onclick="setMode('view')">👁️</div>
+      <div class="clabel">VIEW</div>
+    </div>
+    <div class="ctrl-group">
+      <div class="cbtn" id="btn-move"   onclick="setMode('move')">✋</div>
+      <div class="clabel">MOVE</div>
+    </div>
+    <div class="ctrl-group">
+      <div class="cbtn" id="btn-rotate" onclick="setMode('rotate')">🔄</div>
+      <div class="clabel">ROTATE</div>
+    </div>
+    <div class="ctrl-group">
+      <div class="cbtn" onclick="resetAll()">↺</div>
+      <div class="clabel">RESET</div>
+    </div>
   </div>
-  <div>
-    <div class="ctrl-btn" id="btn-rotate" onclick="setMode('rotate')" title="Rotate">🔄</div>
-    <div class="ctrl-label">ROTATE</div>
-  </div>
-  <div>
-    <div class="ctrl-btn active" id="btn-view" onclick="setMode('view')" title="View">👁️</div>
-    <div class="ctrl-label">VIEW</div>
-  </div>
-  <div>
-    <div class="ctrl-btn" onclick="resetTransform()" title="Reset">↺</div>
-    <div class="ctrl-label">RESET</div>
-  </div>
-</div>
 
-<!-- BOTTOM CONTROLS -->
-<div id="bottom-controls">
-  <div id="size-row">
-    <label>SIZE</label>
-    <input type="range" id="size-slider" min="1" max="100" value="50"
-           oninput="onSizeChange(this.value)" />
-    <span id="size-val">1.0×</span>
+  <div id="bottombar">
+    <div class="slider-row">
+      <span class="slider-label">SIZE</span>
+      <input type="range" id="sizeSlider" min="1" max="100" value="50" oninput="onSize(this.value)"/>
+      <span class="slider-val" id="sizeVal">1.0×</span>
+    </div>
+    <div id="pills">
+      <div class="pill active" onclick="filterCat('all',this)">🍽️ All</div>
+      <div class="pill" onclick="filterCat('pizza',this)">🍕 Pizza</div>
+      <div class="pill" onclick="filterCat('burger',this)">🍔 Burgers</div>
+      <div class="pill" onclick="filterCat('pasta',this)">🍝 Pasta</div>
+    </div>
   </div>
-  <div id="menu-pills">
-    <div class="pill active" onclick="filterMenu('all', this)">🍽️ All</div>
-    <div class="pill" onclick="filterMenu('pizza', this)">🍕 Pizza</div>
-    <div class="pill" onclick="filterMenu('burger', this)">🍔 Burgers</div>
-    <div class="pill" onclick="filterMenu('pasta', this)">🍝 Pasta</div>
-    <div class="pill" onclick="filterMenu('drinks', this)">🥤 Drinks</div>
-  </div>
+
 </div>
 
 <!-- INFO CARD -->
-<div id="info-card">
-  <button id="close-card" onclick="closeCard()">✕</button>
-  <div class="card-header">
-    <h3 id="card-name">Margherita Pizza</h3>
-    <span class="price" id="card-price">$12.99</span>
+<div id="infoCard">
+  <div class="card-row" style="margin-bottom:8px">
+    <div id="cardName">Item Name</div>
+    <div id="cardPrice">$0.00</div>
   </div>
-  <p id="card-desc">Fresh tomato sauce, mozzarella, and basil on a crispy wood-fired crust.</p>
-  <div class="tags" id="card-tags"></div>
+  <div id="cardDesc">Description</div>
+  <div id="cardTags"></div>
+  <button id="closeCard" onclick="closeCard()">✕ Close</button>
 </div>
 
 <!-- TOAST -->
-<div id="toast">🎯 Tracking marker — AR menu will appear!</div>
+<div id="toast"></div>
 
+<!-- ════════ SCRIPT ════════ -->
 <script>
-// ───────────────────────────────────────────────
-// MENU DATA
-// ───────────────────────────────────────────────
-const MENU = [
-  {
-    id: 1, category: 'pizza',
-    name: 'Margherita Pizza', price: '$12.99',
-    desc: 'Fresh tomato sauce, mozzarella, and basil on a crispy wood-fired crust.',
-    tags: ['Vegetarian', 'Classic', 'Best Seller'],
-    model: 'pizza.glb',
-    scale: 0.10,
-    position: [-0.35, 0.08, -0.1],
-    emoji: '🍕'
-  },
-  {
-    id: 2, category: 'pizza',
-    name: 'Pepperoni Supreme', price: '$14.99',
-    desc: 'Loaded with premium pepperoni, extra cheese, and house-made tomato sauce.',
-    tags: ['Spicy', 'Popular'],
-    model: 'pizza.glb',
-    scale: 0.10,
-    position: [0.35, 0.08, -0.1],
-    emoji: '🍕'
-  },
-  {
-    id: 3, category: 'burger',
-    name: 'Classic Cheeseburger', price: '$9.99',
-    desc: 'Juicy beef patty with cheddar, lettuce, tomato, and our secret sauce.',
-    tags: ['Juicy', 'Comfort Food'],
-    model: 'pizza.glb', // replace with burger.glb when available
-    scale: 0.09,
-    position: [0, 0.08, 0.35],
-    emoji: '🍔'
-  },
+'use strict';
+
+// ── State ──────────────────────────────────────────────────────
+let currentMode  = 'view';
+let isTracking   = false;
+let currentScale = 1.0;
+let isDragging   = false;
+let lastTX = 0, lastTY = 0;
+let pinchStart = 0, pinchScaleStart = 1.0;
+
+const ITEMS = [
+  { id: 'item-0', cat: 'pizza'  },
+  { id: 'item-1', cat: 'pizza'  },
+  { id: 'item-2', cat: 'pasta'  },
+  { id: 'item-3', cat: 'burger' },
 ];
 
-// ───────────────────────────────────────────────
-// GLOBALS
-// ───────────────────────────────────────────────
-let mindarThree, renderer, scene, camera;
-let anchorGroup;
-let menuObjects = [];        // { mesh, data }
-let currentMode = 'view';    // 'view' | 'move' | 'rotate'
-let baseScale = 1.0;
-let isTracking = false;
-let isDragging = false;
-let lastTouch = { x: 0, y: 0 };
-let lastPinchDist = 0;
-let touchCount = 0;
+// ── Launch AR ───────────────────────────────────────────────────
+function launchAR() {
+  document.getElementById('splash').style.display       = 'none';
+  document.getElementById('ar-scene-wrap').style.display = 'block';
+  document.getElementById('hud').style.display           = 'block';
+  showToast('📱 Scanning... point camera at the HIRO marker');
 
-// ───────────────────────────────────────────────
-// LOADING → SCAN SCREEN
-// ───────────────────────────────────────────────
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    document.getElementById('loading-screen').style.display = 'none';
-    document.getElementById('scan-screen').style.display = 'flex';
-  }, 2800);
-});
-
-// ───────────────────────────────────────────────
-// START AR
-// ───────────────────────────────────────────────
-async function startAR() {
-  document.getElementById('scan-screen').style.display = 'none';
-  document.getElementById('ar-container').style.display = 'block';
-  document.getElementById('top-bar').style.display = 'flex';
-  document.getElementById('right-controls').style.display = 'flex';
-  document.getElementById('bottom-controls').style.display = 'flex';
-  document.getElementById('tracking-indicator').style.display = 'block';
-
-  showToast('📱 Scanning for marker...');
-
-  try {
-    mindarThree = new window.MINDAR.IMAGE.MindARThree({
-      container: document.getElementById('ar-container'),
-      imageTargetSrc: 'targets.mind',
-      uiLoading: 'no',
-      uiScanning: 'no',
-      uiError: 'no',
-    });
-
-    ({ renderer, scene, camera } = mindarThree);
-    renderer.shadowMap.enabled = true;
-
-    // Lighting
-    const ambient = new THREE.AmbientLight(0xffffff, 0.8);
-    scene.add(ambient);
-    const dir = new THREE.DirectionalLight(0xffddaa, 1.2);
-    dir.position.set(0.5, 1, 0.5);
-    scene.add(dir);
-    const point = new THREE.PointLight(0xff9b3c, 0.6, 2);
-    point.position.set(0, 0.5, 0);
-    scene.add(point);
-
-    // Anchor (index 0 = first target in .mind file)
-    const anchor = mindarThree.addAnchor(0);
-    anchorGroup = anchor.group;
-
-    // Track found/lost
-    anchor.onTargetFound = () => {
-      isTracking = true;
-      document.getElementById('tracking-indicator').style.display = 'none';
-      showToast('✅ Menu detected! Tap a dish to see details');
-    };
-    anchor.onTargetLost = () => {
-      isTracking = false;
-      document.getElementById('tracking-indicator').style.display = 'block';
-      showToast('🔍 Move camera back to the marker');
-    };
-
-    // Load 3D models
-    const loader = new THREE.GLTFLoader();
-    const activeItems = MENU.filter(item => item.category !== '__hidden');
-
-    for (const item of activeItems) {
-      await new Promise((resolve) => {
-        loader.load(
-          item.model,
-          (gltf) => {
-            const model = gltf.scene;
-            model.scale.setScalar(item.scale);
-            model.position.set(...item.position);
-            model.userData = { menuItem: item };
-
-            // Floating animation offset
-            model.userData.floatOffset = Math.random() * Math.PI * 2;
-
-            anchorGroup.add(model);
-            menuObjects.push({ mesh: model, data: item });
-
-            // Label below model
-            addLabel(item, anchorGroup);
-            resolve();
-          },
-          undefined,
-          () => {
-            // Fallback: placeholder box if model fails to load
-            const geo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
-            const mat = new THREE.MeshStandardMaterial({
-              color: 0xff6b00, roughness: 0.4, metalness: 0.2
-            });
-            const box = new THREE.Mesh(geo, mat);
-            box.position.set(...item.position);
-            box.userData = { menuItem: item };
-            box.userData.floatOffset = Math.random() * Math.PI * 2;
-            anchorGroup.add(box);
-            menuObjects.push({ mesh: box, data: item });
-            addLabel(item, anchorGroup);
-            resolve();
-          }
-        );
-      });
-    }
-
-    // Touch / click interactions
-    setupInteractions();
-
-    // Start
-    await mindarThree.start();
-
-    // Render loop
-    let t = 0;
-    renderer.setAnimationLoop(() => {
-      t += 0.016;
-      menuObjects.forEach(({ mesh }) => {
-        const off = mesh.userData.floatOffset || 0;
-        const base = mesh.userData.baseY !== undefined
-          ? mesh.userData.baseY
-          : (() => { mesh.userData.baseY = mesh.position.y; return mesh.position.y; })();
-        mesh.position.y = base + Math.sin(t * 1.5 + off) * 0.018;
-        mesh.rotation.y += 0.008;
-      });
-      renderer.render(scene, camera);
-    });
-
-  } catch (err) {
-    console.error(err);
-    showToast('❌ Camera error. Please allow camera access and reload.');
-  }
+  const scene = document.getElementById('arScene');
+  if (scene.hasLoaded) { wireEvents(); }
+  else { scene.addEventListener('loaded', wireEvents, { once: true }); }
 }
 
-// ───────────────────────────────────────────────
-// LABEL (plate + text sprite)
-// ───────────────────────────────────────────────
-function addLabel(item, parent) {
-  // Plate disc
-  const geo = new THREE.CylinderGeometry(0.1, 0.1, 0.008, 32);
-  const mat = new THREE.MeshStandardMaterial({
-    color: 0xfff5e4, roughness: 0.5, metalness: 0.1
-  });
-  const plate = new THREE.Mesh(geo, mat);
-  plate.position.set(item.position[0], item.position[1] - 0.06, item.position[2]);
-  parent.add(plate);
+// ── Wire A-Frame events ─────────────────────────────────────────
+function wireEvents() {
+  const marker      = document.getElementById('mainMarker');
+  const trackStatus = document.getElementById('track-status');
 
-  // Canvas-based name label
-  const canvas = document.createElement('canvas');
-  canvas.width = 512; canvas.height = 128;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = 'rgba(0,0,0,0)';
-  ctx.fillRect(0, 0, 512, 128);
-  ctx.font = 'bold 36px Arial';
-  ctx.fillStyle = '#ff9b3c';
-  ctx.textAlign = 'center';
-  ctx.fillText(item.emoji + ' ' + item.name, 256, 60);
-  ctx.font = '28px Arial';
-  ctx.fillStyle = '#ffcc99aa';
-  ctx.fillText(item.price, 256, 100);
-
-  const tex = new THREE.CanvasTexture(canvas);
-  const spriteMat = new THREE.SpriteMaterial({ map: tex, transparent: true });
-  const sprite = new THREE.Sprite(spriteMat);
-  sprite.scale.set(0.4, 0.1, 1);
-  sprite.position.set(item.position[0], item.position[1] + 0.22, item.position[2]);
-  parent.add(sprite);
-}
-
-// ───────────────────────────────────────────────
-// INTERACTIONS — tap, pinch-zoom, drag
-// ───────────────────────────────────────────────
-function setupInteractions() {
-  const canvas = renderer.domElement;
-
-  // ── TAP to show info card (view mode) ──
-  function handleTap(clientX, clientY) {
-    if (currentMode !== 'view') return;
-    if (!isTracking) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const mouse = new THREE.Vector2(
-      ((clientX - rect.left) / rect.width) * 2 - 1,
-      -((clientY - rect.top) / rect.height) * 2 + 1
-    );
-    const ray = new THREE.Raycaster();
-    ray.setFromCamera(mouse, camera);
-    const meshes = menuObjects.map(o => o.mesh);
-    const hits = ray.intersectObjects(meshes, true);
-    if (hits.length > 0) {
-      let obj = hits[0].object;
-      while (obj && !obj.userData.menuItem) obj = obj.parent;
-      if (obj && obj.userData.menuItem) showCard(obj.userData.menuItem);
-    }
-  }
-
-  canvas.addEventListener('click', (e) => {
-    if (!isDragging) handleTap(e.clientX, e.clientY);
-    isDragging = false;
+  marker.addEventListener('markerFound', () => {
+    isTracking = true;
+    trackStatus.classList.add('hidden');
+    showToast('✅ Menu detected! Tap a dish for details');
   });
 
-  // ── TOUCH: move / rotate / pinch ──
-  let touchStartX = 0, touchStartY = 0;
-  let rotationStart = { x: 0, y: 0 };
+  marker.addEventListener('markerLost', () => {
+    isTracking = false;
+    trackStatus.classList.remove('hidden');
+    showToast('🔍 Lost marker — point camera back at it');
+  });
 
-  canvas.addEventListener('touchstart', (e) => {
-    touchCount = e.touches.length;
+  // Tap on menu items
+  document.querySelectorAll('.menu-item').forEach(el => {
+    // A-Frame click via cursor or direct DOM click on the invisible plane
+    el.addEventListener('click', () => {
+      if (currentMode !== 'view') return;
+      showCard(el.dataset);
+    });
+  });
+
+  // Touch drag / pinch on the canvas
+  const canvas = document.querySelector('#ar-scene-wrap canvas');
+  if (!canvas) return;
+
+  canvas.addEventListener('touchstart', e => {
     isDragging = false;
-
     if (e.touches.length === 1) {
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-      lastTouch = { x: touchStartX, y: touchStartY };
-      rotationStart = {
-        x: anchorGroup.rotation.x,
-        y: anchorGroup.rotation.y,
-      };
+      lastTX = e.touches[0].clientX;
+      lastTY = e.touches[0].clientY;
     }
     if (e.touches.length === 2) {
-      lastPinchDist = getPinchDist(e);
+      pinchStart      = getPinchDist(e);
+      pinchScaleStart = currentScale;
     }
   }, { passive: true });
 
-  canvas.addEventListener('touchmove', (e) => {
+  canvas.addEventListener('touchmove', e => {
+    const mg = document.getElementById('menuGroup');
+    if (!mg) return;
+
     if (e.touches.length === 1) {
-      const dx = e.touches[0].clientX - lastTouch.x;
-      const dy = e.touches[0].clientY - lastTouch.y;
+      const dx = e.touches[0].clientX - lastTX;
+      const dy = e.touches[0].clientY - lastTY;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) isDragging = true;
 
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) isDragging = true;
-
-      if (currentMode === 'move' && isTracking) {
-        anchorGroup.position.x += dx * 0.0008;
-        anchorGroup.position.z += dy * 0.0008;
-      } else if (currentMode === 'rotate' && isTracking) {
-        anchorGroup.rotation.y += dx * 0.012;
-        anchorGroup.rotation.x += dy * 0.008;
+      if (currentMode === 'move') {
+        const pos = mg.getAttribute('position');
+        mg.setAttribute('position', {
+          x: pos.x + dx * 0.0012,
+          y: pos.y,
+          z: pos.z + dy * 0.0012
+        });
+      } else if (currentMode === 'rotate') {
+        const rot = mg.getAttribute('rotation');
+        mg.setAttribute('rotation', { x: rot.x, y: rot.y + dx * 0.6, z: rot.z });
       }
-      lastTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      lastTX = e.touches[0].clientX;
+      lastTY = e.touches[0].clientY;
     }
 
-    // Pinch to scale
     if (e.touches.length === 2) {
-      const dist = getPinchDist(e);
-      const ratio = dist / lastPinchDist;
-      baseScale = Math.min(Math.max(baseScale * ratio, 0.2), 5.0);
-      anchorGroup.scale.setScalar(baseScale);
-      lastPinchDist = dist;
-      updateSliderUI(baseScale);
+      const d = getPinchDist(e);
+      currentScale = Math.min(Math.max(pinchScaleStart * (d / pinchStart), 0.1), 5.0);
+      mg.setAttribute('scale', `${currentScale} ${currentScale} ${currentScale}`);
+      syncSlider(currentScale);
       isDragging = true;
       e.preventDefault();
     }
   }, { passive: false });
-
-  canvas.addEventListener('touchend', (e) => {
-    if (e.touches.length === 0 && !isDragging) {
-      // Single tap
-      const lastT = e.changedTouches[0];
-      handleTap(lastT.clientX, lastT.clientY);
-    }
-    touchCount = e.touches.length;
-  });
 }
 
 function getPinchDist(e) {
@@ -680,92 +543,83 @@ function getPinchDist(e) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-// ───────────────────────────────────────────────
-// MODE BUTTONS
-// ───────────────────────────────────────────────
+// ── Mode buttons ────────────────────────────────────────────────
 function setMode(mode) {
   currentMode = mode;
-  document.querySelectorAll('.ctrl-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('btn-' + mode)?.classList.add('active');
-
+  ['view','move','rotate'].forEach(m =>
+    document.getElementById('btn-' + m).classList.toggle('active', m === mode));
   const msgs = {
-    move: '✋ Drag to move menu on table',
-    rotate: '🔄 Drag to rotate menu',
-    view: '👁️ Tap a dish to see details',
+    view:   '👁️ Tap a dish to see details',
+    move:   '✋ Drag to reposition the menu',
+    rotate: '🔄 Drag to rotate the menu',
   };
   showToast(msgs[mode]);
 }
 
-function resetTransform() {
-  if (!anchorGroup) return;
-  anchorGroup.position.set(0, 0, 0);
-  anchorGroup.rotation.set(0, 0, 0);
-  baseScale = 1.0;
-  anchorGroup.scale.setScalar(1.0);
-  document.getElementById('size-slider').value = 50;
-  updateSliderUI(1.0);
-  showToast('↺ Reset to original position');
+// ── Size slider ─────────────────────────────────────────────────
+function onSize(val) {
+  // val 1–100 → scale 0.1 – 4.0
+  currentScale = 0.1 + (val / 100) * 3.9;
+  const mg = document.getElementById('menuGroup');
+  if (mg) mg.setAttribute('scale', `${currentScale} ${currentScale} ${currentScale}`);
+  document.getElementById('sizeVal').textContent = currentScale.toFixed(1) + '×';
+  const pct = val + '%';
+  document.getElementById('sizeSlider').style.background =
+    `linear-gradient(90deg, #ff6b00 ${pct}, #333 ${pct})`;
 }
 
-// ───────────────────────────────────────────────
-// SIZE SLIDER
-// ───────────────────────────────────────────────
-function onSizeChange(val) {
-  // val: 1-100 → scale: 0.2 - 3.0
-  baseScale = 0.2 + (val / 100) * 2.8;
-  if (anchorGroup) anchorGroup.scale.setScalar(baseScale);
-  updateSliderUI(baseScale);
+function syncSlider(s) {
+  const val = Math.round(((s - 0.1) / 3.9) * 100);
+  document.getElementById('sizeSlider').value = Math.min(100, Math.max(1, val));
+  document.getElementById('sizeVal').textContent = s.toFixed(1) + '×';
 }
 
-function updateSliderUI(scale) {
-  document.getElementById('size-val').textContent = scale.toFixed(1) + '×';
-  const pct = ((scale - 0.2) / 2.8 * 100).toFixed(0);
-  const slider = document.getElementById('size-slider');
-  slider.value = Math.min(100, Math.max(1, pct));
-  slider.style.setProperty('--val', pct + '%');
+// ── Reset ───────────────────────────────────────────────────────
+function resetAll() {
+  const mg = document.getElementById('menuGroup');
+  if (!mg) return;
+  mg.setAttribute('position', '0 0 0');
+  mg.setAttribute('rotation', '0 0 0');
+  mg.setAttribute('scale',    '1 1 1');
+  currentScale = 1.0;
+  document.getElementById('sizeSlider').value = 50;
+  document.getElementById('sizeVal').textContent = '1.0×';
+  showToast('↺ Reset to original');
 }
 
-// ───────────────────────────────────────────────
-// MENU CATEGORY FILTER
-// ───────────────────────────────────────────────
-function filterMenu(cat, el) {
+// ── Filter ──────────────────────────────────────────────────────
+function filterCat(cat, el) {
   document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
   el.classList.add('active');
-
-  menuObjects.forEach(({ mesh, data }) => {
-    const visible = cat === 'all' || data.category === cat;
-    mesh.visible = visible;
+  ITEMS.forEach(item => {
+    const node = document.getElementById(item.id);
+    if (node) node.setAttribute('visible', String(cat === 'all' || item.cat === cat));
   });
-
-  showToast(cat === 'all' ? '🍽️ Showing all items' : `Showing ${cat} items`);
+  showToast(cat === 'all' ? '🍽️ Showing all items' : `Showing ${cat}`);
 }
 
-// ───────────────────────────────────────────────
-// INFO CARD
-// ───────────────────────────────────────────────
-function showCard(item) {
-  document.getElementById('card-name').textContent = item.emoji + ' ' + item.name;
-  document.getElementById('card-price').textContent = item.price;
-  document.getElementById('card-desc').textContent = item.desc;
-  const tagsEl = document.getElementById('card-tags');
-  tagsEl.innerHTML = item.tags.map(t => `<span class="food-tag">${t}</span>`).join('');
-  document.getElementById('info-card').classList.add('show');
+// ── Info card ────────────────────────────────────────────────────
+function showCard(d) {
+  document.getElementById('cardName').textContent  = (d.emoji || '') + ' ' + d.name;
+  document.getElementById('cardPrice').textContent = d.price;
+  document.getElementById('cardDesc').textContent  = d.desc;
+  const tags = (d.tags || '').split(',').filter(Boolean);
+  document.getElementById('cardTags').innerHTML =
+    tags.map(t => `<span class="ftag">${t.trim()}</span>`).join('');
+  document.getElementById('infoCard').classList.add('open');
 }
-
 function closeCard() {
-  document.getElementById('info-card').classList.remove('show');
+  document.getElementById('infoCard').classList.remove('open');
 }
 
-// ───────────────────────────────────────────────
-// TOAST
-// ───────────────────────────────────────────────
+// ── Toast ────────────────────────────────────────────────────────
 let toastTimer;
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
-  t.style.opacity = '1';
+  t.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
 }
 </script>
 </body>
