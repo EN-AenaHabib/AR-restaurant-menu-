@@ -1,197 +1,159 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <title>Bella Vista AR | Cyber-Dining</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Bella Vista | AR Scanner</title>
+  
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
   <style>
     :root {
-      --neon-orange: #ff6b00;
-      --cyber-blue: #00f2ff;
-      --glass: rgba(0, 0, 0, 0.7);
+      --accent: #00f2ff; /* Cyber Blue */
+      --warning: #ff6b00; /* Pizza Orange */
     }
 
-    body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; font-family: 'Segoe UI', Roboto, sans-serif; background: #000; }
+    body { margin: 0; overflow: hidden; font-family: 'Courier New', Courier, monospace; background: #000; }
 
-    /* --- Splash Screen --- */
-    #splash {
-      position:fixed; inset:0; z-index:9999;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
-      color:white; transition: opacity 0.8s ease;
+    /* --- Loading Screen --- */
+    #loader {
+      position: fixed; inset: 0; z-index: 10000;
+      background: #000; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; color: var(--accent);
     }
-    #splash h1 { 
-      font-size:32px; letter-spacing: 4px; text-transform: uppercase;
-      margin-bottom:5px; color: var(--neon-orange);
-      text-shadow: 0 0 15px var(--neon-orange);
-    }
-    #splash p { font-size:14px; color:#888; margin-bottom: 30px; }
-    
-    .cyber-btn {
-      padding: 15px 40px;
-      background: transparent;
-      border: 2px solid var(--neon-orange);
-      color: var(--neon-orange);
-      text-transform: uppercase;
-      font-weight: bold;
-      letter-spacing: 2px;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-      transition: 0.3s;
-      box-shadow: 0 0 10px rgba(255,107,0,0.3);
-    }
-    .cyber-btn:hover {
-      background: var(--neon-orange);
-      color: white;
-      box-shadow: 0 0 30px var(--neon-orange);
-    }
+    .glitch { font-size: 24px; font-weight: bold; text-transform: uppercase; letter-spacing: 5px; animation: pulse 2s infinite; }
 
-    /* --- Scanner Overlay --- */
-    #scanner-overlay {
-      position: fixed; inset: 0;
-      pointer-events: none;
+    /* --- Scanner UI Overlay --- */
+    #overlay {
+      position: fixed; inset: 0; z-index: 10;
+      pointer-events: none; border: 1px solid rgba(0, 242, 255, 0.1);
       display: none;
-      z-index: 50;
-      border: 2px solid rgba(0, 242, 255, 0.2);
     }
-    .scan-line {
-      width: 100%; height: 4px;
-      background: var(--cyber-blue);
-      position: absolute;
-      box-shadow: 0 0 20px var(--cyber-blue);
-      animation: scan 3s linear infinite;
-      opacity: 0.5;
-    }
-    @keyframes scan {
-      0% { top: 0%; }
-      50% { top: 100%; }
-      100% { top: 0%; }
-    }
-    .corner {
-      position: absolute; width: 30px; height: 30px;
-      border: 3px solid var(--cyber-blue);
-    }
-    .top-left { top: 20px; left: 20px; border-right: 0; border-bottom: 0; }
-    .top-right { top: 20px; right: 20px; border-left: 0; border-bottom: 0; }
-    .bottom-left { bottom: 20px; left: 20px; border-right: 0; border-top: 0; }
-    .bottom-right { bottom: 20px; right: 20px; border-left: 0; border-top: 0; }
 
-    /* --- HUD Controls --- */
-    #ctrl { 
-      position:fixed; bottom:40px; width:100%; 
-      display:none; justify-content:center; gap: 20px; z-index:100; 
+    /* The Center Reticle (Scanning Bracket) */
+    .reticle {
+      position: absolute; top: 50%; left: 50%;
+      width: 250px; height: 250px;
+      transform: translate(-50%, -50%);
+      border: 2px solid rgba(0, 242, 255, 0.3);
     }
-    .hud-btn {
-      background: var(--glass);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.2);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 5px;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+    .reticle::before, .reticle::after {
+      content: ''; position: absolute; width: 20px; height: 20px;
+      border: 3px solid var(--accent);
     }
+    /* Corners */
+    .reticle-tl { top: -5px; left: -5px; border-right: 0; border-bottom: 0; }
+    .reticle-tr { top: -5px; right: -5px; border-left: 0; border-bottom: 0; }
+    .reticle-bl { bottom: -5px; left: -5px; border-right: 0; border-top: 0; }
+    .reticle-br { bottom: -5px; right: -5px; border-left: 0; border-top: 0; }
+
+    /* Moving Scan Line */
+    .line {
+      position: absolute; width: 100%; height: 2px;
+      background: var(--accent); box-shadow: 0 0 15px var(--accent);
+      top: 0; animation: move 3s linear infinite;
+    }
+
+    @keyframes move { 0% { top: 0%; } 100% { top: 100%; } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* Bottom Status Bar */
+    .status-bar {
+      position: fixed; bottom: 0; width: 100%; height: 60px;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(10px);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 20px; box-sizing: border-box; color: var(--accent);
+      border-top: 1px solid var(--accent); z-index: 20;
+    }
+
+    .btn-rotate {
+      background: var(--accent); color: #000; border: none;
+      padding: 10px 20px; font-weight: bold; border-radius: 4px;
+      text-transform: uppercase; font-size: 12px; pointer-events: auto;
+    }
+
+    /* Detected State */
+    .detected { color: var(--warning) !important; border-color: var(--warning) !important; }
   </style>
 </head>
 <body>
 
-<div id="splash">
-  <div style="text-align: center; margin-bottom: 20px;">
-    <span style="font-size: 50px;">🍕</span>
+  <div id="loader">
+    <div class="glitch">Initializing AR...</div>
+    <button onclick="initAR()" style="margin-top:20px; padding:10px 30px; background:var(--accent); border:none; cursor:pointer;">START CAMERA</button>
   </div>
-  <h1>Bella Vista</h1>
-  <p>AUGMENTED REALITY MENU</p>
-  <button class="cyber-btn" onclick="startApp()">Initialize System</button>
-</div>
 
-<div id="scanner-overlay">
-  <div class="scan-line"></div>
-  <div class="corner top-left"></div>
-  <div class="corner top-right"></div>
-  <div class="corner bottom-left"></div>
-  <div class="corner bottom-right"></div>
-  <div style="position:absolute; bottom:15%; width:100%; text-align:center; color:var(--cyber-blue); font-size:12px; letter-spacing:2px;">
-    LOCKING ON TARGET...
+  <div id="overlay">
+    <div class="reticle">
+      <div class="line"></div>
+      <div class="reticle-tl"></div><div class="reticle-tr"></div>
+      <div class="reticle-bl"></div><div class="reticle-br"></div>
+    </div>
+    
+    <div class="status-bar">
+      <div id="status-text">SYSTEM: SCANNING...</div>
+      <button class="btn-rotate" onclick="rotatePizza()">Rotate</button>
+    </div>
   </div>
-</div>
 
-<div id="arWrap" style="display:none;">
-  <a-scene embedded
-           arjs="sourceType: webcam; debugUIEnabled:false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
-           vr-mode-ui="enabled:false">
+  <a-scene 
+    embedded 
+    arjs="sourceType: webcam; debugUIEnabled: false; displayWidth: 1280; displayHeight: 720;"
+    vr-mode-ui="enabled: false"
+    renderer="antialias: true; alpha: true; precision: medium;">
 
     <a-assets>
-      <a-asset-item id="pizzaModel" src="pizza.glb"></a-asset-item>
+      <a-asset-item id="pizza" src="pizza.glb"></a-asset-item>
     </a-assets>
 
-    <a-marker type="pattern" url="pattern_images.patt" id="pizzaMarker">
-      <a-entity id="pizzaEntity"
-                gltf-model="#pizzaModel"
-                position="0 0 0"
-                rotation="-90 0 0"
-                scale="0.01 0.01 0.01"
-                visible="false"
-                animation__scale="property: scale; to: 0.2 0.2 0.2; dur: 1000; easing: easeOutElastic; startEvents: showPizza">
+    <a-marker type="pattern" url="pattern_images.patt" id="marker">
+      <a-entity 
+        id="pizza-model"
+        gltf-model="#pizza" 
+        scale="0.2 0.2 0.2" 
+        position="0 0 0" 
+        rotation="-90 0 0"
+        visible="false">
       </a-entity>
     </a-marker>
 
     <a-entity camera></a-entity>
   </a-scene>
-</div>
 
-<div id="ctrl">
-  <button class="hud-btn" onclick="rotatePizza()">Rotate Y-Axis</button>
-  <button class="hud-btn" onclick="location.reload()">Reset View</button>
-</div>
+  <script>
+    const model = document.querySelector('#pizza-model');
+    const marker = document.querySelector('#marker');
+    const statusText = document.querySelector('#status-text');
+    const overlay = document.querySelector('#overlay');
+    const reticleLines = document.querySelectorAll('.reticle div');
 
-<script>
-const pizza = document.getElementById('pizzaEntity');
-const scanner = document.getElementById('scanner-overlay');
-const marker = document.getElementById('pizzaMarker');
+    function initAR() {
+      document.querySelector('#loader').style.display = 'none';
+      overlay.style.display = 'block';
+    }
 
-function startApp() {
-  document.getElementById('splash').style.opacity = '0';
-  setTimeout(() => {
-    document.getElementById('splash').style.display = 'none';
-    document.getElementById('arWrap').style.display = 'block';
-    document.getElementById('ctrl').style.display = 'flex';
-    scanner.style.display = 'block';
-  }, 800);
-}
+    marker.addEventListener('markerFound', () => {
+      model.setAttribute('visible', 'true');
+      statusText.innerText = "SYSTEM: TARGET ACQUIRED";
+      statusText.style.color = "var(--warning)";
+      document.querySelector('.line').style.display = "none";
+      // Change reticle color to orange
+      document.querySelectorAll('.reticle div').forEach(el => el.style.borderColor = "var(--warning)");
+    });
 
-// Marker Events
-marker.addEventListener('markerFound', () => {
-  pizza.setAttribute('visible', 'true');
-  // Trigger the scale animation
-  pizza.emit('showPizza');
-  // Hide scanner line when locked
-  scanner.style.borderColor = 'var(--neon-orange)';
-  document.querySelector('.scan-line').style.display = 'none';
-});
+    marker.addEventListener('markerLost', () => {
+      model.setAttribute('visible', 'false');
+      statusText.innerText = "SYSTEM: SCANNING...";
+      statusText.style.color = "var(--accent)";
+      document.querySelector('.line').style.display = "block";
+      document.querySelectorAll('.reticle div').forEach(el => el.style.borderColor = "var(--accent)");
+    });
 
-marker.addEventListener('markerLost', () => {
-  pizza.setAttribute('visible', 'false');
-  pizza.setAttribute('scale', '0.01 0.01 0.01');
-  scanner.style.borderColor = 'rgba(0, 242, 255, 0.2)';
-  document.querySelector('.scan-line').style.display = 'block';
-});
-
-function rotatePizza() {
-  let curr = pizza.getAttribute('rotation');
-  // Adding a smooth rotation transition
-  pizza.setAttribute('animation__rotate', {
-    property: 'rotation',
-    to: `${curr.x} ${curr.y + 45} ${curr.z}`,
-    dur: 500
-  });
-}
-</script>
-
+    function rotatePizza() {
+      const rot = model.getAttribute('rotation');
+      model.setAttribute('rotation', {x: rot.x, y: rot.y + 45, z: rot.z});
+    }
+  </script>
 </body>
 </html>
