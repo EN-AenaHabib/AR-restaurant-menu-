@@ -3,41 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <title>Bella Vista AR Menu - Pizza Demo</title>
-  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@1.12.1/dist/model-viewer.min.js"></script>
   <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/1.7.7/aframe/build/aframe-ar.js"></script>
-
+  
   <!-- Gesture scripts -->
   <script src="https://cdn.jsdelivr.net/gh/fcor/arjs-gestures/gesture-detector.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/fcor/arjs-gestures/gesture-handler.js"></script>
+
+  <style>
+    body, html {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    /* Overlay scanning box */
+    #scanner {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      width: 200px;
+      height: 200px;
+      margin-left: -100px;
+      margin-top: -100px;
+      border: 3px dashed #ff6b00;
+      border-radius: 20px;
+      z-index: 999;
+      pointer-events: none;
+    }
+
+    /* Message above scanner */
+    #message {
+      position: fixed;
+      top: 40%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      z-index: 1000;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    /* Controls for gestures */
+    #controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    #controls button {
+      padding: 10px 15px;
+      background: #ff6b00;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+    }
+  </style>
 </head>
 
-<body style="margin:0; overflow:hidden;">
+<body>
+  <!-- Scanner overlay -->
+  <div id="scanner"></div>
+  <div id="message">Scan the pizza icon to see it!</div>
 
-  <a-scene
-    embedded
-    arjs="sourceType: webcam; debugUIEnabled: false;"
-    vr-mode-ui="enabled: false"
-    gesture-detector
-  >
+  <!-- Gesture buttons -->
+  <div id="controls" style="display:none;">
+    <button onclick="rotatePizza()">Rotate 🔄</button>
+  </div>
+
+  <!-- AR Scene -->
+  <a-scene embedded
+           arjs="sourceType: webcam; debugUIEnabled: false;"
+           vr-mode-ui="enabled: false"
+           gesture-detector>
+    
     <a-assets>
       <a-asset-item id="pizzaModel" src="pizza.glb"></a-asset-item>
     </a-assets>
 
     <!-- Marker for Pizza -->
-    <a-marker type="pattern" url="pattern_images.patt">
-      <a-entity
-        id="pizza"
-        gltf-model="#pizzaModel"
-        rotation="-90 0 0"
-        position="0 0 0"
-        scale="0.35 0.35 0.35"
-        gesture-handler
-      ></a-entity>
+    <a-marker type="pattern" url="pattern_images.patt" 
+              id="pizzaMarker">
+      <a-entity id="pizza"
+                gltf-model="#pizzaModel"
+                rotation="-90 0 0"
+                position="0 0 0"
+                scale="0.35 0.35 0.35"
+                gesture-handler
+                visible="false">
+      </a-entity>
     </a-marker>
 
     <a-entity camera></a-entity>
   </a-scene>
 
+  <script>
+    const pizzaEntity = document.getElementById('pizza');
+    const pizzaMarker = document.getElementById('pizzaMarker');
+    const message = document.getElementById('message');
+    const controls = document.getElementById('controls');
+
+    // When marker is detected
+    pizzaMarker.addEventListener('markerFound', () => {
+      pizzaEntity.setAttribute('visible', 'true');
+      message.style.display = 'none';
+      controls.style.display = 'flex';
+    });
+
+    // When marker lost
+    pizzaMarker.addEventListener('markerLost', () => {
+      pizzaEntity.setAttribute('visible', 'false');
+      message.style.display = 'block';
+      controls.style.display = 'none';
+    });
+
+    // Rotate button
+    function rotatePizza() {
+      let curr = pizzaEntity.getAttribute('rotation');
+      pizzaEntity.setAttribute('rotation', {x: curr.x, y: curr.y + 45, z: curr.z});
+    }
+  </script>
 </body>
 </html>
