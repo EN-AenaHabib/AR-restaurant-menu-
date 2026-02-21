@@ -1,49 +1,43 @@
-<body>
-  <div id="splash" style="position:fixed; inset:0; z-index:9999; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; color:white; font-family:sans-serif;">
-    <h1 style="color:#ff9b3c;">🍕 Bella Vista AR</h1>
-    <button onclick="startApp()" style="margin-top:20px; padding:15px 40px; background:#ff6b00; border:none; border-radius:30px; color:white; font-weight:bold;">Start Menu</button>
-  </div>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Bella Vista AR Menu - Pizza Demo</title>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@1.12.1/dist/model-viewer.min.js"></script>
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.rawgit.com/jeromeetienne/AR.js/1.7.7/aframe/build/aframe-ar.js"></script>
 
-  <div id="arWrap" style="display:none;">
-    <a-scene 
-      embedded 
-      arjs="sourceType: webcam; debugUIEnabled: false; trackingMethod: best;" 
-      vr-mode-ui="enabled: false"
-      device-orientation-permission-ui="enabled: false">
-      
-      <a-assets>
-        <a-asset-item id="pizzaModel" src="pizza.glb"></a-asset-item>
-      </a-assets>
+  <!-- Gesture scripts -->
+  <script src="https://cdn.jsdelivr.net/gh/fcor/arjs-gestures/gesture-detector.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/fcor/arjs-gestures/gesture-handler.js"></script>
+</head>
 
-      <a-marker preset="hiro">
-        <a-entity
-          id="pizzaEntity"
-          gltf-model="#pizzaModel"
-          position="0 0.1 0" 
-          rotation="0 0 0" 
-          scale="0.2 0.2 0.2">
-        </a-entity>
-      </a-marker>
+<body style="margin:0; overflow:hidden;">
 
-      <a-entity camera></a-entity>
-    </a-scene>
-  </div>
+  <a-scene
+    embedded
+    arjs="sourceType: webcam; debugUIEnabled: false;"
+    vr-mode-ui="enabled: false"
+    gesture-detector
+  >
+    <a-assets>
+      <a-asset-item id="pizzaModel" src="pizza.glb"></a-asset-item>
+    </a-assets>
 
-  <div id="ctrl" style="position:fixed; bottom:0; width:100%; z-index:100; display:none; background:rgba(0,0,0,0.8); padding:20px; flex-direction:column; align-items:center;">
-     <button onclick="rotatePizza()" style="padding:10px; background:#ff6b00; color:white; border:none; border-radius:5px;">Rotate 🔄</button>
-  </div>
+    <!-- Marker for Pizza -->
+    <a-marker type="pattern" url="pattern_images.patt">
+      <a-entity
+        id="pizza"
+        gltf-model="#pizzaModel"
+        rotation="-90 0 0"
+        position="0 0 0"
+        scale="0.35 0.35 0.35"
+        gesture-handler
+      ></a-entity>
+    </a-marker>
 
-  <script>
-    function startApp() {
-      document.getElementById('splash').style.display = 'none';
-      document.getElementById('arWrap').style.display = 'block';
-      document.getElementById('ctrl').style.display = 'flex';
-    }
+    <a-entity camera></a-entity>
+  </a-scene>
 
-    function rotatePizza() {
-      let p = document.getElementById('pizzaEntity');
-      let curr = p.getAttribute('rotation');
-      p.setAttribute('rotation', {x: curr.x, y: curr.y + 45, z: curr.z});
-    }
-  </script>
 </body>
+</html>
