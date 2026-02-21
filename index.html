@@ -10,78 +10,83 @@
   <script src="https://cdn.rawgit.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
 
   <style>
-    body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; font-family:sans-serif; background:#000; }
-
-    /* Splash screen */
+    body, html { margin:0; padding:0; width:100%; height:100%; overflow:hidden; font-family:sans-serif; }
     #splash {
       position:fixed; inset:0; z-index:9999;
-      background:#000;
       display:flex; flex-direction:column; align-items:center; justify-content:center;
-      color:white; font-family:sans-serif;
+      background:#000; color:white;
     }
-    #splash h1 { color:#ff9b3c; font-size:28px; }
+    #splash h1 { color:#ff9b3c; font-size:28px; margin-bottom:10px; }
+    #splash p { font-size:14px; text-align:center; max-width:250px; color:#ccc; }
     #splash button {
-      margin-top:20px; padding:15px 40px; background:#ff6b00; border:none;
-      border-radius:30px; color:white; font-weight:bold; font-size:16px; cursor:pointer;
+      margin-top:20px; padding:15px 40px; background:#ff6b00; border:none; border-radius:30px;
+      color:white; font-weight:bold; font-size:16px; cursor:pointer;
     }
 
-    /* AR scene */
-    #arWrap { display:none; width:100%; height:100%; position:fixed; inset:0; }
-
-    /* Controls */
-    #ctrl {
-      position:fixed; bottom:0; width:100%; z-index:100;
-      background:rgba(0,0,0,0.8); padding:20px; display:none; flex-direction:column; align-items:center;
-    }
-    #ctrl button {
-      padding:10px; background:#ff6b00; color:white; border:none; border-radius:5px; font-size:16px; cursor:pointer;
-    }
+    #ctrl { position:fixed; bottom:20px; width:100%; display:none; justify-content:center; z-index:100; }
+    #ctrl button { padding:10px 20px; background:#ff6b00; border:none; border-radius:10px; color:white; font-size:16px; cursor:pointer; }
   </style>
 </head>
 <body>
 
-  <!-- Splash -->
-  <div id="splash">
-    <h1>🍕 Bella Vista AR</h1>
-    <p>Place the pizza icon on the table, then tap Start Menu.</p>
-    <button onclick="startApp()">Start Menu</button>
-  </div>
+<!-- Splash -->
+<div id="splash">
+  <h1>🍕 Bella Vista AR</h1>
+  <p>Place the pizza icon on the table, then tap Start Menu.</p>
+  <button onclick="startApp()">Start Menu</button>
+</div>
 
-  <!-- AR Scene -->
-  <div id="arWrap">
-    <a-scene embedded arjs="sourceType: webcam; debugUIEnabled: false;" vr-mode-ui="enabled: false">
+<!-- AR Scene -->
+<div id="arWrap" style="display:none;">
+  <a-scene embedded
+           arjs="sourceType: webcam; debugUIEnabled:false;"
+           vr-mode-ui="enabled:false">
 
-      <a-assets>
-        <a-asset-item id="pizzaModel" src="pizza.glb"></a-asset-item>
-      </a-assets>
+    <a-assets>
+      <a-asset-item id="pizzaModel" src="pizza.glb"></a-asset-item>
+    </a-assets>
 
-      <!-- Marker for Pizza -->
-      <a-marker type="pattern" url="pattern_images.patt">
-        <!-- Lay pizza flat on the table -->
-        <a-entity id="pizzaEntity" gltf-model="#pizzaModel" rotation="-90 0 0" position="0 0 0" scale="0.2 0.2 0.2"></a-entity>
-      </a-marker>
+    <!-- Pizza Marker -->
+    <a-marker type="pattern" url="pattern_images.patt">
+      <a-entity id="pizzaEntity"
+                gltf-model="#pizzaModel"
+                position="0 0 0"
+                rotation="-90 0 0"
+                scale="0.2 0.2 0.2"
+                visible="false">
+      </a-entity>
+    </a-marker>
 
-      <a-entity camera></a-entity>
-    </a-scene>
-  </div>
+    <a-entity camera></a-entity>
+  </a-scene>
+</div>
 
-  <!-- Controls -->
-  <div id="ctrl">
-    <button onclick="rotatePizza()">Rotate 🔄</button>
-  </div>
+<!-- Controls -->
+<div id="ctrl">
+  <button onclick="rotatePizza()">Rotate 🔄</button>
+</div>
 
-  <script>
-    function startApp() {
-      document.getElementById('splash').style.display = 'none';
-      document.getElementById('arWrap').style.display = 'block';
-      document.getElementById('ctrl').style.display = 'flex';
-    }
+<script>
+function startApp() {
+  document.getElementById('splash').style.display = 'none';
+  document.getElementById('arWrap').style.display = 'block';
+  document.getElementById('ctrl').style.display = 'flex';
 
-    function rotatePizza() {
-      let p = document.getElementById('pizzaEntity');
-      let curr = p.getAttribute('rotation');
-      p.setAttribute('rotation', {x: curr.x, y: curr.y + 45, z: curr.z});
-    }
-  </script>
+  // Get entities
+  const pizza = document.getElementById('pizzaEntity');
+  const marker = document.querySelector('a-marker');
+
+  // Show pizza when marker detected
+  marker.addEventListener('markerFound', () => pizza.setAttribute('visible', 'true'));
+  marker.addEventListener('markerLost', () => pizza.setAttribute('visible', 'false'));
+}
+
+function rotatePizza() {
+  let p = document.getElementById('pizzaEntity');
+  let curr = p.getAttribute('rotation');
+  p.setAttribute('rotation', {x: curr.x, y: curr.y + 45, z: curr.z});
+}
+</script>
+
 </body>
 </html>
