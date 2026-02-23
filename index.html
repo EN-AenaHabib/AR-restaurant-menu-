@@ -31,33 +31,82 @@
             <a-asset-item id="hotchocoModel" src="hot_chocolate.glb"></a-asset-item>
         </a-assets>
 
-        <a-marker type="pattern" url="pattern-images.patt" raycaster="objects: .clickable" gesture-handler>
-            <a-entity gltf-model="#pizzaModel" class="clickable" scale="0.5 0.5 0.5" gesture-handler></a-entity>
-        </a-marker>
+       <!-- Example for pizza -->
+<a-marker type="pattern" url="pattern-images.patt" raycaster="objects: .clickable">
+    <a-entity 
+        gltf-model="#pizzaModel" 
+        class="clickable" 
+        scale="0.5 0.5 0.5"
+        gesture-handler
+        rotation="0 0 0">
+    </a-entity>
+</a-marker>
 
-        <a-marker type="pattern" url="pattern-burger.patt" raycaster="objects: .clickable" gesture-handler>
-            <a-entity gltf-model="#burgerModel" class="clickable" scale="0.15 0.15 0.15" gesture-handler></a-entity>
-        </a-marker>
+<!-- Burger: reduced size -->
+<a-marker type="pattern" url="pattern-burger.patt" raycaster="objects: .clickable">
+    <a-entity 
+        gltf-model="#burgerModel" 
+        class="clickable" 
+        scale="0.35 0.35 0.35"
+        gesture-handler
+        rotation="0 0 0">
+    </a-entity>
+</a-marker>
 
-        <a-marker type="pattern" url="pattern-donut.patt" raycaster="objects: .clickable" gesture-handler>
-            <a-entity gltf-model="#donutModel" class="clickable" scale="4 4 4" gesture-handler></a-entity>
-        </a-marker>
+<!-- Donut: slightly bigger -->
+<a-marker type="pattern" url="pattern-donut.patt" raycaster="objects: .clickable">
+    <a-entity 
+        gltf-model="#donutModel" 
+        class="clickable" 
+        scale="0.7 0.7 0.7"
+        gesture-handler
+        rotation="0 0 0">
+    </a-entity>
+</a-marker>
 
-        <a-marker type="pattern" url="pattern-hotchoco.patt" raycaster="objects: .clickable" gesture-handler>
-            <a-entity gltf-model="#hotchocoModel" class="clickable" scale="2 2 2" gesture-handler></a-entity>
-        </a-marker>
+<!-- Hot Chocolate: medium size -->
+<a-marker type="pattern" url="pattern-hotchoco.patt" raycaster="objects: .clickable">
+    <a-entity 
+        gltf-model="#hotchocoModel" 
+        class="clickable" 
+        scale="0.5 0.5 0.5"
+        gesture-handler
+        rotation="0 0 0">
+    </a-entity>
+</a-marker>
 
-        <a-marker type="pattern" url="pattern-latte.patt" raycaster="objects: .clickable" gesture-handler>
-            <a-entity gltf-model="#matchaModel" class="clickable" scale="2 2 2" gesture-handler></a-entity>
-        </a-marker>
+<!-- Matcha Latte: slightly bigger -->
+<a-marker type="pattern" url="pattern-latte.patt" raycaster="objects: .clickable">
+    <a-entity 
+        gltf-model="#matchaModel" 
+        class="clickable" 
+        scale="0.6 0.6 0.6"
+        gesture-handler
+        rotation="0 0 0">
+    </a-entity>
+</a-marker>
 
-        <a-marker type="pattern" url="pattern-rollcake.patt" raycaster="objects: .clickable" gesture-handler>
-            <a-entity gltf-model="#rollcakeModel" class="clickable" scale="3 3 3" gesture-handler></a-entity>
-        </a-marker>
+<!-- Roll Cake: smaller -->
+<a-marker type="pattern" url="pattern-rollcake.patt" raycaster="objects: .clickable">
+    <a-entity 
+        gltf-model="#rollcakeModel" 
+        class="clickable" 
+        scale="0.4 0.4 0.4"
+        gesture-handler
+        rotation="0 0 0">
+    </a-entity>
+</a-marker>
 
-        <a-marker type="pattern" url="pattern-shawarma.patt" raycaster="objects: .clickable" gesture-handler>
-            <a-entity gltf-model="#shawarmaModel" class="clickable" scale="0.3 0.3 0.3" gesture-handler></a-entity>
-        </a-marker>
+<!-- Shawarma: medium -->
+<a-marker type="pattern" url="pattern-shawarma.patt" raycaster="objects: .clickable">
+    <a-entity 
+        gltf-model="#shawarmaModel" 
+        class="clickable" 
+        scale="0.5 0.5 0.5"
+        gesture-handler
+        rotation="0 0 0">
+    </a-entity>
+</a-marker>
 
         <a-entity light="type: ambient; intensity: 1.5;"></a-entity>
         <a-entity camera></a-entity>
@@ -65,3 +114,4 @@
     </a-scene>
 </body>
 </html>
+
