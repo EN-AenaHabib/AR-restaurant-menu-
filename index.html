@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Bon Appétit AR Menu</title>
+    <title>Bon Appétit AR - Debug Mode</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
@@ -9,27 +9,28 @@
     
     <style>
       body { margin: 0; overflow: hidden; font-family: sans-serif; }
-      #debug-ui {
-        position: fixed; bottom: 10px; left: 10px; z-index: 100;
-        background: rgba(0,0,0,0.8); color: #0f0; padding: 10px;
-        font-family: monospace; font-size: 12px; border-radius: 5px;
-        pointer-events: none;
+      #error-log {
+        position: fixed; bottom: 0; left: 0; width: 100%; 
+        background: rgba(0,0,0,0.8); color: #ff3e3e; 
+        font-size: 10px; z-index: 999; max-height: 100px; overflow-y: auto;
+        padding: 5px; pointer-events: none;
       }
-      .status-bar {
-        position: fixed; top: 0; width: 100%; background: #d32f2f;
-        color: white; text-align: center; padding: 10px; font-weight: bold; z-index: 10;
+      #status {
+        position: fixed; top: 10px; left: 50%; transform: translateX(-50%);
+        padding: 10px 20px; background: white; border-radius: 20px;
+        font-weight: bold; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
       }
     </style>
   </head>
 
   <body>
-    <div class="status-bar">BON APPÉTIT: SCANNING...</div>
-    <div id="debug-ui">System: Ready<br>Scanning for: Pizza, Latte, Donut, Cake, Burger, Choco</div>
+    <div id="status">SCANNING FOR MENU...</div>
+    <div id="error-log">System Log: Initializing...</div>
 
     <a-scene 
       embedded 
-      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3; trackingMethod: best; changeMatrixMode: modelViewMatrix;" 
-      renderer="logarithmicDepthBuffer: true; colorManagement: true; antialias: true;"
+      arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+      renderer="antialias: true; precision: medium;"
       gesture-detector
     >
       
@@ -42,48 +43,48 @@
         <a-asset-item id="m-burger" src="burgerfries.glb"></a-asset-item>
       </a-assets>
 
-      <a-marker type="pattern" url="pattern-images.patt" id="marker-pizza" raycaster="objects: .clickable" gesture-handler>
-        <a-entity gltf-model="#m-pizza" scale="0.05 0.05 0.05" class="clickable"></a-entity>
+      <a-marker type="pattern" url="pattern-images.patt" id="pizza-marker">
+        <a-entity gltf-model="#m-pizza" scale="0.1 0.1 0.1" class="clickable" gesture-handler></a-entity>
       </a-marker>
 
-      <a-marker type="pattern" url="pattern-latte.patt" id="marker-latte" raycaster="objects: .clickable" gesture-handler>
-        <a-entity gltf-model="#m-matcha" scale="0.5 0.5 0.5" class="clickable"></a-entity>
+      <a-marker type="pattern" url="pattern-latte.patt" id="latte-marker">
+        <a-entity gltf-model="#m-matcha" scale="0.5 0.5 0.5" class="clickable" gesture-handler></a-entity>
       </a-marker>
 
-      <a-marker type="pattern" url="pattern-donut.patt" id="marker-donut" raycaster="objects: .clickable" gesture-handler>
-        <a-entity gltf-model="#m-donut" scale="0.8 0.8 0.8" class="clickable"></a-entity>
+      <a-marker type="pattern" url="pattern-donut.patt" id="donut-marker">
+        <a-entity gltf-model="#m-donut" scale="0.8 0.8 0.8" class="clickable" gesture-handler></a-entity>
       </a-marker>
 
-      <a-marker type="pattern" url="pattern-hotchoco.patt" id="marker-hotchoco" raycaster="objects: .clickable" gesture-handler>
-        <a-entity gltf-model="#m-hotchoco" scale="0.5 0.5 0.5" class="clickable"></a-entity>
+      <a-marker type="pattern" url="pattern-hotchoco.patt" id="hotchoco-marker">
+        <a-entity gltf-model="#m-hotchoco" scale="0.5 0.5 0.5" class="clickable" gesture-handler></a-entity>
       </a-marker>
 
-      <a-marker type="pattern" url="pattern-rollcake.patt" id="marker-rollcake" raycaster="objects: .clickable" gesture-handler>
-        <a-entity gltf-model="#m-rollcake" scale="0.8 0.8 0.8" class="clickable"></a-entity>
+      <a-marker type="pattern" url="pattern-rollcake.patt" id="cake-marker">
+        <a-entity gltf-model="#m-rollcake" scale="0.8 0.8 0.8" class="clickable" gesture-handler></a-entity>
       </a-marker>
 
-      <a-marker type="pattern" url="burgerfries_pattern.patt" id="marker-burger" raycaster="objects: .clickable" gesture-handler>
-        <a-entity gltf-model="#m-burger" scale="0.3 0.3 0.3" class="clickable"></a-entity>
+      <a-marker type="pattern" url="burgerfries_pattern.patt" id="burger-marker">
+        <a-entity gltf-model="#m-burger" scale="0.4 0.4 0.4" class="clickable" gesture-handler></a-entity>
       </a-marker>
 
-      <a-entity light="type: ambient; intensity: 1.5;"></a-entity>
+      <a-entity light="type: ambient; intensity: 1;"></a-entity>
       <a-entity camera></a-entity>
     </a-scene>
 
     <script>
-      // Detection Debugger
-      const markers = document.querySelectorAll('a-marker');
-      const debug = document.getElementById('debug-ui');
-      
-      markers.forEach(marker => {
-        marker.addEventListener('markerFound', () => {
-          debug.innerHTML = "FOUND: " + marker.id;
-          debug.style.color = "#0f0";
-        });
-        marker.addEventListener('markerLost', () => {
-          debug.innerHTML = "Scanning...";
-          debug.style.color = "#f00";
-        });
+      const log = document.getElementById('error-log');
+      const status = document.getElementById('status');
+
+      // Check if files exist/load properly
+      document.querySelectorAll('a-asset-item').forEach(asset => {
+        asset.addEventListener('loaded', () => { log.innerHTML += `<br>✅ Loaded: ${asset.id}`; });
+        asset.addEventListener('error', () => { log.innerHTML += `<br>❌ Failed: ${asset.getAttribute('src')}`; });
+      });
+
+      // Show which marker is found
+      document.querySelectorAll('a-marker').forEach(marker => {
+        marker.addEventListener('markerFound', () => { status.innerText = "MATCH: " + marker.id; });
+        marker.addEventListener('markerLost', () => { status.innerText = "SCANNING..."; });
       });
     </script>
   </body>
