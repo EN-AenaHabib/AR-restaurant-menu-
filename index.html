@@ -18,10 +18,18 @@
       renderer="logarithmicDepthBuffer: true;"
       gesture-detector
     >
+
       <a-assets>
         <a-asset-item id="pizzaModel" src="pizza.glb"></a-asset-item>
+        <a-asset-item id="burgerModel" src="burger.glb"></a-asset-item>
+        <a-asset-item id="shawarmaModel" src="shawarma.glb"></a-asset-item>
+        <a-asset-item id="matchaModel" src="iced_matcha.glb"></a-asset-item>
+        <a-asset-item id="donutModel" src="maple_donut.glb"></a-asset-item>
+        <a-asset-item id="rollcakeModel" src="sakura_cake_roll.glb"></a-asset-item>
+        <a-asset-item id="hotchocoModel" src="hot_chocolate.glb"></a-asset-item>
       </a-assets>
 
+      <!-- PIZZA -->
       <a-marker 
         type="pattern" 
         url="pattern-images.patt"
@@ -30,17 +38,118 @@
         cursor="fuse: false; rayOrigin: mouse;"
       >
         <a-entity
-          id="pizza-entity"
           gltf-model="#pizzaModel"
           position="0 0 0"
           scale="0.5 0.5 0.5"
           class="clickable"
           gesture-handler="minScale: 0.25; maxScale: 10"
-        >
-        </a-entity>
+        ></a-entity>
+      </a-marker>
+
+      <!-- BURGER -->
+      <a-marker 
+        type="pattern" 
+        url="pattern-burger.patt"
+        raycaster="objects: .clickable"
+        emitevents="true"
+        cursor="fuse: false; rayOrigin: mouse;"
+      >
+        <a-entity
+          gltf-model="#burgerModel"
+          position="0 0 0"
+          scale="0.3 0.3 0.3"
+          class="clickable"
+          gesture-handler="minScale: 0.25; maxScale: 10"
+        ></a-entity>
+      </a-marker>
+
+      <!-- SHAWARMA -->
+      <a-marker 
+        type="pattern" 
+        url="pattern-shawarma.patt"
+        raycaster="objects: .clickable"
+        emitevents="true"
+        cursor="fuse: false; rayOrigin: mouse;"
+      >
+        <a-entity
+          gltf-model="#shawarmaModel"
+          position="0 0 0"
+          scale="0.5 0.5 0.5"
+          class="clickable"
+          gesture-handler="minScale: 0.25; maxScale: 10"
+        ></a-entity>
+      </a-marker>
+
+      <!-- MATCHA -->
+      <a-marker 
+        type="pattern" 
+        url="pattern-latte.patt"
+        raycaster="objects: .clickable"
+        emitevents="true"
+        cursor="fuse: false; rayOrigin: mouse;"
+      >
+        <a-entity
+          gltf-model="#matchaModel"
+          position="0 0 0"
+          scale="0.5 0.5 0.5"
+          class="clickable"
+          gesture-handler="minScale: 0.25; maxScale: 10"
+        ></a-entity>
+      </a-marker>
+
+      <!-- DONUT -->
+      <a-marker 
+        type="pattern" 
+        url="pattern-donut.patt"
+        raycaster="objects: .clickable"
+        emitevents="true"
+        cursor="fuse: false; rayOrigin: mouse;"
+      >
+        <a-entity
+          gltf-model="#donutModel"
+          position="0 0 0"
+          scale="0.8 0.8 0.8"
+          class="clickable"
+          gesture-handler="minScale: 0.25; maxScale: 10"
+        ></a-entity>
+      </a-marker>
+
+      <!-- ROLL CAKE -->
+      <a-marker 
+        type="pattern" 
+        url="pattern-rollcake.patt"
+        raycaster="objects: .clickable"
+        emitevents="true"
+        cursor="fuse: false; rayOrigin: mouse;"
+      >
+        <a-entity
+          gltf-model="#rollcakeModel"
+          position="0 0 0"
+          scale="0.8 0.8 0.8"
+          class="clickable"
+          gesture-handler="minScale: 0.25; maxScale: 10"
+        ></a-entity>
+      </a-marker>
+
+      <!-- HOT CHOCOLATE -->
+      <a-marker 
+        type="pattern" 
+        url="pattern-hotchoco.patt"
+        raycaster="objects: .clickable"
+        emitevents="true"
+        cursor="fuse: false; rayOrigin: mouse;"
+      >
+        <a-entity
+          gltf-model="#hotchocoModel"
+          position="0 0 0"
+          scale="0.5 0.5 0.5"
+          class="clickable"
+          gesture-handler="minScale: 0.25; maxScale: 10"
+        ></a-entity>
       </a-marker>
 
       <a-entity camera></a-entity>
+
     </a-scene>
   </body>
 </html>
