@@ -23,14 +23,14 @@
         <a-asset-item id="pizzaModel" src="pizza.glb"></a-asset-item>
         <a-asset-item id="burgerModel" src="burger.glb"></a-asset-item>
         <a-asset-item id="shawarmaModel" src="shawarma.glb"></a-asset-item>
-        <a-asset-item id="matchaModel" src="take_away_coffee_cup_set.glb"></a-asset-item>
+        <a-asset-item id="coffeeModel" src="take_away_coffee_cup_set.glb"></a-asset-item>
         <a-asset-item id="donutModel" src="maple_donut.glb"></a-asset-item>
         <a-asset-item id="rollcakeModel" src="sakura_cake_roll.glb"></a-asset-item>
-        <a-asset-item id="hotchocoModel" src="hot_chocolate.glb"></a-asset-item>
+        <a-asset-item id="steakriceModel" src="steak_and_rice_scaniverse.glb"></a-asset-item>
       </a-assets>
 
       <a-marker type="pattern" url="pattern-images.patt" raycaster="objects: .clickable" emitevents="true" cursor="fuse: false; rayOrigin: mouse;">
-        <a-entity gltf-model="#matchaModel"
+        <a-entity gltf-model="#pizzaModel"
                   scale="0.5 0.5 0.5"
                   position="0 0 0"
                   class="clickable"
@@ -57,7 +57,7 @@
       </a-marker>
 
       <a-marker type="pattern" url="pattern-hotchoco.patt" raycaster="objects: .clickable" emitevents="true" cursor="fuse: false; rayOrigin: mouse;">
-        <a-entity gltf-model="#hotchocoModel"
+        <a-entity gltf-model="#steakriceModel"
                   scale="0.5 0.5 0.5"
                   position="0 0 0"
                   class="clickable"
@@ -66,7 +66,7 @@
       </a-marker>
 
       <a-marker type="pattern" url="pattern-latte.patt" raycaster="objects: .clickable" emitevents="true" cursor="fuse: false; rayOrigin: mouse;">
-        <a-entity gltf-model="#matchaaModel"
+        <a-entity gltf-model="#coffeeModel"
                   scale="0.5 0.5 0.5"
                   position="0 0 0"
                   class="clickable"
@@ -97,6 +97,7 @@
     </a-scene>
   </body>
 </html>
+
 
 
 
